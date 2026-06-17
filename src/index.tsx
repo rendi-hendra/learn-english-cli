@@ -1,12 +1,13 @@
+#!/usr/bin/env node
 import React from 'react';
 import { render } from 'ink';
 import { Command } from 'commander';
 import { App } from './App.js';
-import dotenv from 'dotenv';
 import { getLastModel } from './utils/modelConfig.js';
+import { loadEnv } from './utils/envConfig.js';
 
 // Load environmental variables
-dotenv.config();
+loadEnv();
 
 const program = new Command();
 

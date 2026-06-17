@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
-const CONFIG_FILE = path.join(process.cwd(), '.last_model');
+const CONFIG_FILE = path.join(os.homedir(), '.english_cli_last_model');
 
 export function getLastModel(): string {
   try {

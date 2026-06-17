@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
-import dotenv from 'dotenv';
+import { loadEnv } from '../utils/envConfig.js';
 
 // Load environment variables
-dotenv.config();
+loadEnv();
 
 let openaiClient: OpenAI | null = null;
 

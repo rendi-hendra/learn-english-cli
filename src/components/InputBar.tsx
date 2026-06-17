@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 interface InputBarProps {
   onSubmit: (value: string) => void;
@@ -9,7 +10,7 @@ interface InputBarProps {
   status: string;
 }
 
-const HISTORY_FILE = path.join(process.cwd(), '.ai_history');
+const HISTORY_FILE = path.join(os.homedir(), '.english_cli_history');
 
 function loadHistory(): string[] {
   try {
