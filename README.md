@@ -103,7 +103,10 @@ npm start
 | :--- | :--- |
 | **`/help`** | Menampilkan panduan bantuan CLI. |
 | **`/clear`** | Menghapus seluruh riwayat obrolan dari memori. |
-| **`/model [nama]`** | Menampilkan atau mengubah model AI aktif saat runtime (contoh: `/model gpt-4o`). |
+| **`/read [path]`** | Membaca dan memuat isi berkas lokal ke dalam konteks obrolan (contoh: `/read src/App.tsx`). |
+| **`/mode`** | Menampilkan menu interaktif untuk beralih antara 3 mode: **Translator**, **Chat**, atau **Agent**. |
+| **`/model`** | Menampilkan menu antarmuka interaktif untuk memilih model AI. |
+| **`/model [nama]`** | Mengubah model AI aktif secara langsung tanpa menu interaktif. |
 | **`/exit`** | Keluar dari aplikasi. |
 | **`Ctrl + L`** | Membersihkan layar terminal. |
 | **`Ctrl + C`** | Keluar dari aplikasi secara instan. |

@@ -20,4 +20,5 @@ export interface ChatState {
   error: string | null;
   connectionStatus: ConnectionStatus;
   enableThinking: boolean;
+  appMode: 'translator' | 'chat' | 'agent';
 }

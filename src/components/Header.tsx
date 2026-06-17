@@ -7,6 +7,7 @@ interface HeaderProps {
   messageCount: number;
   connectionStatus: ConnectionStatus;
   status: string;
+  appMode: 'translator' | 'chat' | 'agent';
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -14,6 +15,7 @@ export const Header: React.FC<HeaderProps> = ({
   messageCount,
   connectionStatus,
   status,
+  appMode,
 }) => {
   const connColor = connectionStatus === 'connected' ? 'green' : 'red';
   const statusColor = 
@@ -34,6 +36,10 @@ export const Header: React.FC<HeaderProps> = ({
       <Box justifyContent="space-between" marginBottom={0}>
         <Text bold color="cyan">🤖 AI CLI TERMINAL</Text>
         <Text color="gray">v1.0.0</Text>
+      </Box>
+      <Box>
+        <Text bold>Mode:       </Text>
+        <Text color={appMode === 'translator' ? "magenta" : appMode === 'chat' ? "blue" : "yellow"}>{appMode.toUpperCase()}</Text>
       </Box>
       <Box>
         <Text bold>Model:      </Text>

@@ -15,6 +15,7 @@ class ChatStore {
     error: null,
     connectionStatus: 'connected',
     enableThinking: false,
+    appMode: 'translator',
   };
 
   private listeners = new Set<() => void>();
@@ -97,6 +98,11 @@ class ChatStore {
     this.emit();
   }
 
+  setAppMode(appMode: 'translator' | 'chat' | 'agent') {
+    this.state = { ...this.state, appMode };
+    this.emit();
+  }
+
   clearChat() {
     this.state = {
       ...this.state,
@@ -134,6 +140,7 @@ export function useChatStore() {
   const setError = useCallback((error: string | null) => chatStore.setError(error), []);
   const setConnectionStatus = useCallback((status: ConnectionStatus) => chatStore.setConnectionStatus(status), []);
   const setEnableThinking = useCallback((enableThinking: boolean) => chatStore.setEnableThinking(enableThinking), []);
+  const setAppMode = useCallback((mode: 'translator' | 'chat' | 'agent') => chatStore.setAppMode(mode), []);
   const clearChat = useCallback(() => chatStore.clearChat(), []);
 
   return {
@@ -147,6 +154,7 @@ export function useChatStore() {
     setError,
     setConnectionStatus,
     setEnableThinking,
+    setAppMode,
     clearChat,
   };
 }

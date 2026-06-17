@@ -1,5 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box } from 'ink';
+import fs from 'fs';
+import path from 'path';
 import { useChatStore } from './store/chatStore.js';
 import { Header } from './components/Header.js';
 import { ChatView } from './components/ChatView.js';
@@ -7,6 +9,9 @@ import { StatusBar } from './components/StatusBar.js';
 import { InputBar } from './components/InputBar.js';
 import { streamChatCompletion } from './services/openai.js';
 import { renderMarkdownWithGlow } from './utils/markdown.js';
+import { ModelSelector } from './components/ModelSelector.js';
+import { ModeSelector } from './components/ModeSelector.js';
+import { saveLastModel } from './utils/modelConfig.js';
 
 interface AppProps {
   initialModel?: string;
@@ -30,13 +35,20 @@ export const App: React.FC<AppProps> = ({ initialModel, enableThinking = false }
     setError,
     setConnectionStatus,
     setEnableThinking,
+    setAppMode,
     clearChat,
   } = useChatStore();
+  const appMode = useChatStore().appMode;
+
+  const [modelSelected, setModelSelected] = useState(!!initialModel);
+  const [modeSelecting, setModeSelecting] = useState(false);
 
   // Set initial model if provided via CLI
   useEffect(() => {
     if (initialModel) {
       setActiveModel(initialModel);
+      saveLastModel(initialModel);
+      setModelSelected(true);
     }
   }, [initialModel, setActiveModel]);
 
@@ -77,19 +89,57 @@ export const App: React.FC<AppProps> = ({ initialModel, enableThinking = false }
             `Bantuan AI CLI:\n` +
             `• /help                 - Menampilkan pesan bantuan ini\n` +
             `• /clear                - Menghapus riwayat obrolan\n` +
-            `• /model [nama_model]   - Menampilkan atau mengubah model aktif (contoh: /model gpt-3.5-turbo)\n` +
+            `• /read [path_file]     - Membaca isi file lokal ke dalam konteks obrolan\n` +
+            `• /mode                 - Menampilkan menu interaktif untuk beralih mode (translator/chat/agent)\n` +
+            `• /model                - Menampilkan menu interaktif untuk memilih model\n` +
+            `• /model [nama_model]   - Mengubah model aktif secara langsung (contoh: /model gpt-4o)\n` +
             `• /exit                 - Keluar dari aplikasi\n` +
             `• Ctrl+L                - Membersihkan layar terminal\n` +
             `• Ctrl+C                - Keluar dari aplikasi`
           );
           break;
 
+        case '/read': {
+          if (!args) {
+            addMessage('system', 'Penggunaan: /read <path_file>');
+            return;
+          }
+          try {
+            const filePath = path.resolve(process.cwd(), args.trim());
+            const content = fs.readFileSync(filePath, 'utf8');
+            const ext = path.extname(filePath).slice(1) || 'text';
+            const msg = `Membaca file: ${args.trim()}\n\n\`\`\`${ext}\n${content}\n\`\`\``;
+            addMessage('user', msg);
+            addMessage('system', `File berhasil dimuat ke dalam memori sesi.`);
+          } catch (err: any) {
+            addMessage('system', `Gagal membaca file: ${err.message}`);
+          }
+          break;
+        }
+
+        case '/mode': {
+          if (args) {
+            const m = args.toLowerCase();
+            if (m === 'translator' || m === 'chat' || m === 'agent') {
+              setAppMode(m as any);
+              addMessage('system', `Aplikasi beralih ke mode: ${m.toUpperCase()}`);
+            } else {
+              addMessage('system', `Mode tidak valid. Pilihan: translator, chat, agent.`);
+            }
+          } else {
+            setModeSelecting(true);
+          }
+          break;
+        }
+
         case '/model':
           if (args) {
             setActiveModel(args);
+            saveLastModel(args);
             addMessage('system', `Model berhasil diubah ke: ${args}`);
           } else {
-            addMessage('system', `Model aktif saat ini: ${activeModel}`);
+            // Trigger interactive model selector
+            setModelSelected(false);
           }
           break;
 
@@ -116,7 +166,7 @@ PASTIKAN patuh secara ketat pada format output berikut (langsung terjemahannya s
 3. formal: [terjemahan formal/sopan]`;
 
     const apiMessages = [
-      { role: 'system' as const, content: SYSTEM_PROMPT },
+      ...(appMode === 'translator' ? [{ role: 'system' as const, content: SYSTEM_PROMPT }] : []),
       ...messages
         .filter(m => m.role !== 'system') // Filter out local CLI system messages
         .map(m => ({ role: m.role, content: m.content })),
@@ -159,6 +209,34 @@ PASTIKAN patuh secara ketat pada format output berikut (langsung terjemahannya s
     }
   };
 
+  if (!modelSelected) {
+    return (
+      <ModelSelector 
+        onSelect={(model) => {
+          setActiveModel(model);
+          saveLastModel(model);
+          setModelSelected(true);
+          if (messages.length > 0) {
+            addMessage('system', `Model aktif diubah ke: ${model}`);
+          }
+        }} 
+      />
+    );
+  }
+
+  if (modeSelecting) {
+    return (
+      <ModeSelector 
+        currentMode={appMode}
+        onSelect={(mode) => {
+          setAppMode(mode);
+          setModeSelecting(false);
+          addMessage('system', `Aplikasi beralih ke mode: ${mode.toUpperCase()}`);
+        }} 
+      />
+    );
+  }
+
   return (
     <Box flexDirection="column" padding={1}>
       <Header
@@ -166,6 +244,7 @@ PASTIKAN patuh secara ketat pada format output berikut (langsung terjemahannya s
         messageCount={messageCount}
         connectionStatus={connectionStatus}
         status={status}
+        appMode={appMode}
       />
       
       <Box flexDirection="column">

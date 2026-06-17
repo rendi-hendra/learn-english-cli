@@ -27,6 +27,17 @@ export interface ChatMessageParam {
   content: string;
 }
 
+export async function getModels(): Promise<string[]> {
+  const client = getOpenAIClient();
+  try {
+    const response = await client.models.list();
+    return response.data.map(m => m.id);
+  } catch (error) {
+    console.error('Failed to fetch models:', error);
+    return ['qwen3.7-max', 'gpt-4o', 'gpt-3.5-turbo']; // Provide fallback models on error
+  }
+}
+
 export async function* streamChatCompletion(
   messages: ChatMessageParam[],
   model: string = 'qwen3.7-max',

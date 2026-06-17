@@ -3,6 +3,7 @@ import { render } from 'ink';
 import { Command } from 'commander';
 import { App } from './App.js';
 import dotenv from 'dotenv';
+import { getLastModel } from './utils/modelConfig.js';
 
 // Load environmental variables
 dotenv.config();
@@ -13,7 +14,7 @@ program
   .name('ai-cli')
   .description('Modern terminal TUI interface for OpenAI models built with React Ink')
   .version('1.0.0')
-  .option('-m, --model <model>', 'OpenAI model to use', process.env.OPENAI_MODEL || 'qwen3.7-max')
+  .option('-m, --model <model>', 'OpenAI model to use', getLastModel())
   .option('-t, --thinking', 'Enable thinking/reasoning mode', false)
   .parse(process.argv);
 
