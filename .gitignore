@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+
+# Production build output
+dist/
+
+# Local configuration / API keys
+.env
+.env.local
+
+# Local command history (specific to each user)
+.ai_history
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# System files
+.DS_Store
+Thumbs.db
