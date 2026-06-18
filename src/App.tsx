@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Box } from "ink";
-import fs from "fs";
-import path from "path";
 import { useChatStore } from "./store/chatStore.js";
 import { Header } from "./components/Header.js";
 import { ChatView } from "./components/ChatView.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { InputBar } from "./components/InputBar.js";
-import { streamChatCompletion } from "./services/openai.js";
+import { streamLangChainChat, routeUserCommand } from "./services/langchain.js";
 import { renderMarkdownWithGlow } from "./utils/markdown.js";
 import { ModelSelector } from "./components/ModelSelector.js";
 import { ModeSelector } from "./components/ModeSelector.js";
@@ -24,7 +22,8 @@ export const App: React.FC<AppProps> = ({
   enableThinking = false,
 }) => {
   const {
-    messages,
+    currentConversation,
+    apiHistory,
     status,
     activeModel,
     error,
@@ -32,8 +31,10 @@ export const App: React.FC<AppProps> = ({
     messageCount,
     totalTokens,
     enableThinking: storeEnableThinking,
-    addMessage,
-    updateLastMessage,
+    startConversation,
+    updateAssistantMessage,
+    updateSystemMessage,
+    addApiHistory,
     setStatus,
     setActiveModel,
     setError,
@@ -63,16 +64,16 @@ export const App: React.FC<AppProps> = ({
 
   // Handle Ctrl+L (clear screen)
   const handleClearScreen = () => {
-    // Write ANSI escape codes to clear the terminal screen and move cursor to top
-    process.stdout.write('\x1b[2J\x1b[H');
+    // Note: We don't use process.stdout.write to avoid breaking Ink's internal layout.
+    clearChat();
   };
 
   const handleSubmit = async (value: string) => {
     const trimmed = value.trim();
     if (!trimmed) return;
 
-    // Clear terminal before processing new command (fresh screen like cls/clear)
-    process.stdout.write('\x1b[2J\x1b[H');
+    // Do NOT clear terminal using process.stdout.write('\x1b[2J\x1b[H') 
+    // because it breaks Ink's single-screen control.
 
     // Check if it's a direct command
     if (trimmed.startsWith("/")) {
@@ -87,11 +88,12 @@ export const App: React.FC<AppProps> = ({
           break;
         case "/clear":
           clearChat();
-          addMessage("system", "Riwayat obrolan telah dibersihkan.");
+          startConversation("/clear");
+          updateSystemMessage("Riwayat obrolan telah dibersihkan.");
           return;
         case "/help":
-          addMessage(
-            "system",
+          startConversation("/help");
+          updateSystemMessage(
             `Bantuan AI CLI:\n• /help                 - Menampilkan pesan bantuan ini\n• /clear                - Menghapus riwayat obrolan\n• /read [path_file]     - Membaca isi file lokal ke dalam konteks obrolan\n• /write [path_file] [content] - Menulis konten ke file\n• /ls [path_dir]        - Menampilkan daftar isi direktori\n• /pwd                  - Menampilkan direktori kerja saat ini\n• /mode                 - Menampilkan menu interaktif untuk beralih mode\n• /model                - Menampilkan menu interaktif untuk memilih model\n• /exit                 - Keluar dari aplikasi\n• Ctrl+L                - Membersihkan layar terminal\n• Ctrl+C                - Keluar dari aplikasi`,
           );
           return;
@@ -100,13 +102,13 @@ export const App: React.FC<AppProps> = ({
             const m = args.toLowerCase();
             if (m === "translator" || m === "chat" || m === "agent") {
               setAppMode(m as any);
-              addMessage(
-                "system",
+              startConversation(`/mode ${m}`);
+              updateSystemMessage(
                 `Aplikasi beralih ke mode: ${m.toUpperCase()}`,
               );
             } else {
-              addMessage(
-                "system",
+              startConversation(`/mode ${m}`);
+              updateSystemMessage(
                 `Mode tidak valid. Pilihan: translator, chat, agent.`,
               );
             }
@@ -118,7 +120,8 @@ export const App: React.FC<AppProps> = ({
           if (args) {
             setActiveModel(args);
             saveLastModel(args);
-            addMessage("system", `Model berhasil diubah ke: ${args}`);
+            startConversation(`/model ${args}`);
+            updateSystemMessage(`Model berhasil diubah ke: ${args}`);
           } else {
             setModelSelected(false);
           }
@@ -128,150 +131,80 @@ export const App: React.FC<AppProps> = ({
       // File system commands
       const cmdResult = executeCommandLocally(trimmed);
       if (cmdResult) {
-        if (command === "/read") {
-          addMessage("user", cmdResult.output);
-          addMessage("system", `File berhasil dimuat ke dalam memori sesi.`);
-        } else {
-          addMessage("system", cmdResult.output);
-        }
+        startConversation(trimmed);
+        const outputMsg = command === "/read" 
+          ? `File berhasil dimuat ke dalam memori sesi.\n\n${cmdResult.output}`
+          : cmdResult.output;
+        const formattedOutput = renderMarkdownWithGlow(outputMsg);
+        updateSystemMessage(outputMsg, formattedOutput);
         return;
       }
 
-      addMessage(
-        "system",
+      startConversation(trimmed);
+      updateSystemMessage(
         `Perintah tidak dikenal: ${command}. Ketik /help untuk melihat bantuan.`,
       );
       return;
     }
 
     // Process as a prompt for the model
-    addMessage("user", trimmed);
+    startConversation(trimmed);
     setStatus("thinking");
     setError(null);
 
-    const SYSTEM_PROMPT = `Secara default, terjemahkan teks berikut antara Bahasa Indonesia dan Bahasa Inggris (jika input Indonesia terjemahkan ke English, dan sebaliknya). 
-Pilih terjemahan yang paling natural dan paling sering dipakai oleh penutur asli (native).
-JANGAN menambahkan teks pengantar, obrolan, atau penjelasan. 
-PASTIKAN patuh secara ketat pada format output berikut (langsung terjemahannya saja):
-1. Direct: [terjemahan harfiah]
-2. natural: [terjemahan paling natural/native]
-3. formal: [terjemahan formal/sopan]`;
+    // Prompts have been imported from src/config/prompts.ts
 
-    const AGENT_SYSTEM_PROMPT = `Kamu adalah agen AI yang memiliki kemampuan untuk berinteraksi dengan sistem file. Kamu dapat:
-1. Membaca file menggunakan perintah "/read <path_file>"
-2. Menulis file menggunakan perintah "/write <path_file> <content>"
-3. Melihat isi direktori menggunakan perintah "/ls <path_dir>"
-4. Mengetahui direktori kerja saat ini menggunakan perintah "/pwd"
-
-Jika pengguna meminta untuk melihat isi direktori, membaca file, atau menulis file, JAWABLAH DENGAN HANYA MENGELUARKAN PERINTAH TERSEBUT pada baris pertama (misalnya "/ls ." atau "/pwd"). Sistem akan mengeksekusinya untukmu dan memberikan hasilnya untuk kamu simpulkan.`;
-
-    let currentApiMessages = [
-      ...(appMode === "translator"
-        ? [{ role: "system" as const, content: SYSTEM_PROMPT }]
-        : []),
-      ...(appMode === "agent"
-        ? [{ role: "system" as const, content: AGENT_SYSTEM_PROMPT }]
-        : []),
-      ...messages
-        .filter((m) => m.role !== "system")
-        .map((m) => ({ role: m.role, content: m.content })),
-      { role: "user" as const, content: trimmed },
-    ];
+    let currentApiMessages = appMode === "translator"
+      ? [{ role: "user" as const, content: trimmed }]
+      : [
+          ...apiHistory.map((m) => ({ role: m.role as any, content: m.content })),
+          { role: "user" as const, content: trimmed },
+        ];
 
     try {
-      let isAgentTurn = true;
-      while (isAgentTurn) {
-        addMessage("assistant", "");
+      let fullResponse = "";
 
-        const generator = streamChatCompletion(
-          currentApiMessages,
-          activeModel,
-          storeEnableThinking,
-        );
-        let fullResponse = "";
-        let isReadCommand = false;
-        let readTarget = "";
-        let readSpinnerIdx = 0;
-        const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
-        let isPotentialReadCommand = false;
-
-        for await (const chunk of generator) {
-          fullResponse += chunk;
-          
-          if (appMode === "agent") {
-            const firstLine = fullResponse.trimStart().split('\n')[0];
+      if (appMode === "agent") {
+        updateAssistantMessage("Menganalisis permintaan...");
+        const routeResult = await routeUserCommand(trimmed, activeModel);
+        
+        if (routeResult.startsWith("/")) {
+          const cmdResult = executeCommandLocally(routeResult);
+          if (cmdResult) {
+            updateAssistantMessage(`Menjalankan perintah: ${routeResult}`);
             
-            if ("/read".startsWith(firstLine) && firstLine.length > 0) {
-              isPotentialReadCommand = true;
-              isReadCommand = false;
-            } else if (firstLine.startsWith("/read")) {
-              isPotentialReadCommand = false;
-              isReadCommand = true;
-              const parts = firstLine.split(' ');
-              if (parts.length > 1) {
-                readTarget = parts.slice(1).join(' ').trim();
-              }
-            } else {
-              isPotentialReadCommand = false;
-              isReadCommand = false;
-            }
-          }
-
-          if (isReadCommand) {
-            readSpinnerIdx = (readSpinnerIdx + 1) % spinnerFrames.length;
-            const frame = spinnerFrames[readSpinnerIdx];
-            const msg = readTarget ? `Sedang membaca file ${readTarget}...` : "Sedang membaca file...";
-            updateLastMessage(msg, `${frame} **${msg}**`);
-          } else if (isPotentialReadCommand) {
-            readSpinnerIdx = (readSpinnerIdx + 1) % spinnerFrames.length;
-            const frame = spinnerFrames[readSpinnerIdx];
-            updateLastMessage("Mengecek perintah...", `${frame} **Mengecek perintah...**`);
-          } else {
-            updateLastMessage(fullResponse);
+            const formattedOutput = renderMarkdownWithGlow(cmdResult.output);
+            updateSystemMessage(cmdResult.output, formattedOutput);
+            
+            setConnectionStatus("connected");
+            setStatus("complete");
+            return;
           }
         }
-
-        if (isReadCommand) {
-          const glowFormatted = renderMarkdownWithGlow(`✅ Berhasil membaca file: \`${readTarget}\``);
-          updateLastMessage(`✅ Berhasil membaca file: ${readTarget}`, glowFormatted);
-        } else {
-          const glowFormatted = renderMarkdownWithGlow(fullResponse);
-          updateLastMessage(fullResponse, glowFormatted);
+        
+        // Fallback to regular chat if model returns "chat" or non-command
+        const generator = streamLangChainChat(currentApiMessages, activeModel, storeEnableThinking, "chat");
+        for await (const chunk of generator) {
+           fullResponse += chunk;
+           updateAssistantMessage(fullResponse);
         }
-
-        // Implicit agent execution
-        if (appMode === "agent") {
-          const firstLine = fullResponse.trim().split("\n")[0].trim();
-          if (firstLine.startsWith("/")) {
-            const cmdResult = executeCommandLocally(firstLine);
-            if (cmdResult) {
-              const sysMsgContent = `[Menjalankan ${firstLine}...]\n\n${cmdResult.output}`;
-              addMessage("system", sysMsgContent);
-              
-              // Apply markdown styling to the system message (which contains the file content)
-              const formattedSys = renderMarkdownWithGlow(sysMsgContent);
-              updateLastMessage(sysMsgContent, formattedSys);
-
-              currentApiMessages.push({
-                role: "assistant",
-                content: fullResponse,
-              });
-              currentApiMessages.push({
-                role: "user",
-                content: `[Hasil Sistem]:\n${cmdResult.output}\n\nLanjutkan menjawab pengguna berdasarkan hasil ini.`,
-              });
-              setStatus("calling_tool");
-              continue;
-            }
-          }
+      } else {
+        const generator = streamLangChainChat(currentApiMessages, activeModel, storeEnableThinking, appMode);
+        for await (const chunk of generator) {
+           fullResponse += chunk;
+           updateAssistantMessage(fullResponse);
         }
-
-        // End interaction
-        isAgentTurn = false;
-        setConnectionStatus("connected");
-        setStatus("complete");
       }
+
+      if (fullResponse) {
+        const glowFormatted = renderMarkdownWithGlow(fullResponse);
+        updateAssistantMessage(fullResponse, glowFormatted);
+      } else {
+        updateAssistantMessage("");
+      }
+
+      setConnectionStatus("connected");
+      setStatus("complete");
     } catch (err: any) {
       setStatus("error");
       if (
@@ -283,7 +216,7 @@ Jika pengguna meminta untuk melihat isi direktori, membaca file, atau menulis fi
       }
       const errMsg = err.message || "Terjadi kesalahan sistem.";
       setError(errMsg);
-      updateLastMessage(`Error: ${errMsg}`);
+      updateAssistantMessage(`Error: ${errMsg}`);
     }
   };
 
@@ -294,9 +227,6 @@ Jika pengguna meminta untuk melihat isi direktori, membaca file, atau menulis fi
           setActiveModel(model);
           saveLastModel(model);
           setModelSelected(true);
-          if (messages.length > 0) {
-            addMessage("system", `Model aktif diubah ke: ${model}`);
-          }
         }}
       />
     );
@@ -309,8 +239,8 @@ Jika pengguna meminta untuk melihat isi direktori, membaca file, atau menulis fi
         onSelect={(mode) => {
           setAppMode(mode);
           setModeSelecting(false);
-          addMessage(
-            "system",
+          startConversation(`/mode ${mode}`);
+          updateSystemMessage(
             `Aplikasi beralih ke mode: ${mode.toUpperCase()}`,
           );
         }}
@@ -328,7 +258,7 @@ Jika pengguna meminta untuk melihat isi direktori, membaca file, atau menulis fi
       />
 
       <Box flexDirection="column">
-        <ChatView messages={messages} />
+        <ChatView currentConversation={currentConversation} />
       </Box>
 
       <StatusBar

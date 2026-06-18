@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  Message,
-  ChatState,
-  ChatStatus,
-  ConnectionStatus,
-} from "../types/chat.js";
+import { ChatState, ChatStatus, ConnectionStatus } from "../types/chat.js";
 
 export function estimateTokens(text: string): number {
   if (!text) return 0;
@@ -14,7 +9,8 @@ export function estimateTokens(text: string): number {
 
 class ChatStore {
   private state: ChatState = {
-    messages: [],
+    currentConversation: null,
+    apiHistory: [],
     status: "idle",
     activeModel: "qwen3.7-max",
     error: null,
@@ -42,40 +38,56 @@ class ChatStore {
     }
   }
 
-  addMessage(role: "user" | "assistant" | "system", content: string) {
-    const newMessage: Message = {
-      id: Math.random().toString(36).substring(7),
-      role,
-      content,
-      timestamp: new Date(),
-      tokens: estimateTokens(content),
-    };
+  startConversation(userText: string) {
+    if (this.state.currentConversation) {
+      // Save previous conversation to history
+      if (this.state.currentConversation.user) {
+        this.state.apiHistory.push({
+          role: "user",
+          content: this.state.currentConversation.user,
+        });
+      }
+      if (this.state.currentConversation.assistant) {
+        this.state.apiHistory.push({ role: "assistant", content: this.state.currentConversation.assistant });
+      }
+    }
     this.state = {
       ...this.state,
-      messages: [...this.state.messages, newMessage],
+      currentConversation: { user: userText, assistant: "" },
     };
     this.emit();
-    return newMessage.id;
   }
 
-  updateLastMessage(content: string, formattedContent?: string) {
-    const messages = [...this.state.messages];
-    if (messages.length === 0) return;
-    const lastMsg = messages[messages.length - 1];
-    if (lastMsg) {
-      const updatedMsg = {
-        ...lastMsg,
-        content,
-        formattedContent,
-        tokens: estimateTokens(content),
-      };
-      messages[messages.length - 1] = updatedMsg;
+  updateAssistantMessage(content: string, formattedContent?: string) {
+    if (this.state.currentConversation) {
       this.state = {
         ...this.state,
-        messages,
+        currentConversation: {
+          ...this.state.currentConversation,
+          assistant: content,
+          assistantFormatted: formattedContent,
+        },
       };
       this.emit();
     }
+  }
+
+  updateSystemMessage(content: string, formattedContent?: string) {
+    if (this.state.currentConversation) {
+      this.state = {
+        ...this.state,
+        currentConversation: {
+          ...this.state.currentConversation,
+          system: content,
+          systemFormatted: formattedContent,
+        },
+      };
+      this.emit();
+    }
+  }
+
+  addApiHistory(role: "user" | "assistant" | "system", content: string) {
+    this.state.apiHistory.push({ role, content });
   }
 
   setStatus(status: ChatStatus) {
@@ -111,7 +123,8 @@ class ChatStore {
   clearChat() {
     this.state = {
       ...this.state,
-      messages: [],
+      currentConversation: null,
+      apiHistory: [],
       status: "idle",
       error: null,
     };
@@ -119,14 +132,21 @@ class ChatStore {
   }
 
   getMessageCount(): number {
-    return this.state.messages.length;
+    return (
+      this.state.apiHistory.length + (this.state.currentConversation ? 2 : 0)
+    );
   }
 
   getTotalTokens(): number {
-    return this.state.messages.reduce(
-      (total, msg) => total + (msg.tokens || 0),
+    const historyTokens = this.state.apiHistory.reduce(
+      (total, msg) => total + estimateTokens(msg.content),
       0,
     );
+    const currentTokens = this.state.currentConversation
+      ? estimateTokens(this.state.currentConversation.user) +
+        estimateTokens(this.state.currentConversation.assistant)
+      : 0;
+    return historyTokens + currentTokens;
   }
 }
 
@@ -141,14 +161,23 @@ export function useChatStore() {
     });
   }, []);
 
-  const addMessage = useCallback(
-    (role: "user" | "assistant" | "system", content: string) =>
-      chatStore.addMessage(role, content),
+  const startConversation = useCallback(
+    (userText: string) => chatStore.startConversation(userText),
     [],
   );
-  const updateLastMessage = useCallback(
+  const updateAssistantMessage = useCallback(
     (content: string, formattedContent?: string) =>
-      chatStore.updateLastMessage(content, formattedContent),
+      chatStore.updateAssistantMessage(content, formattedContent),
+    [],
+  );
+  const updateSystemMessage = useCallback(
+    (content: string, formattedContent?: string) =>
+      chatStore.updateSystemMessage(content, formattedContent),
+    [],
+  );
+  const addApiHistory = useCallback(
+    (role: "user" | "assistant" | "system", content: string) =>
+      chatStore.addApiHistory(role, content),
     [],
   );
   const setStatus = useCallback(
@@ -181,8 +210,10 @@ export function useChatStore() {
     ...state,
     messageCount: chatStore.getMessageCount(),
     totalTokens: chatStore.getTotalTokens(),
-    addMessage,
-    updateLastMessage,
+    startConversation,
+    updateAssistantMessage,
+    updateSystemMessage,
+    addApiHistory,
     setStatus,
     setActiveModel,
     setError,

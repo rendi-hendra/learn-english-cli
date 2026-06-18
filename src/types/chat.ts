@@ -1,12 +1,16 @@
 export type MessageRole = "user" | "assistant" | "system";
 
-export interface Message {
-  id: string;
-  role: MessageRole;
+export interface CurrentConversation {
+  user: string;
+  assistant: string;
+  system?: string;
+  assistantFormatted?: string;
+  systemFormatted?: string;
+}
+
+export interface ApiMessage {
+  role: "user" | "assistant" | "system";
   content: string;
-  timestamp: Date;
-  tokens?: number;
-  formattedContent?: string;
 }
 
 export type ChatStatus =
@@ -19,7 +23,8 @@ export type ChatStatus =
 export type ConnectionStatus = "connected" | "disconnected";
 
 export interface ChatState {
-  messages: Message[];
+  currentConversation: CurrentConversation | null;
+  apiHistory: ApiMessage[];
   status: ChatStatus;
   activeModel: string;
   error: string | null;
