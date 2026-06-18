@@ -19,9 +19,16 @@ export function executeCommandLocally(trimmedCmd: string): CommandResult | null 
       try {
         const filePath = path.resolve(process.cwd(), args.trim());
         const content = fs.readFileSync(filePath, 'utf8');
-        const ext = path.extname(filePath).slice(1) || 'text';
+        const ext = path.extname(filePath).slice(1).toLowerCase() || 'text';
+        const isMarkdown = ['md', 'markdown', 'mdx'].includes(ext);
+        
+        let outputContent = content;
+        if (!isMarkdown) {
+          outputContent = `\`\`\`${ext}\n${content}\n\`\`\``;
+        }
+
         return { 
-          output: `Membaca file: ${args.trim()}\n\n\`\`\`${ext}\n${content}\n\`\`\``, 
+          output: `Membaca file: ${args.trim()}\n\n${outputContent}`, 
           success: true
         };
       } catch (err: any) {

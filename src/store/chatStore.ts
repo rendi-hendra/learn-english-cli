@@ -1,5 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Message, ChatState, ChatStatus, ConnectionStatus } from '../types/chat.js';
+import { useState, useEffect, useCallback } from "react";
+import {
+  Message,
+  ChatState,
+  ChatStatus,
+  ConnectionStatus,
+} from "../types/chat.js";
 
 export function estimateTokens(text: string): number {
   if (!text) return 0;
@@ -10,12 +15,12 @@ export function estimateTokens(text: string): number {
 class ChatStore {
   private state: ChatState = {
     messages: [],
-    status: 'idle',
-    activeModel: 'qwen3.7-max',
+    status: "idle",
+    activeModel: "qwen3.7-max",
     error: null,
-    connectionStatus: 'connected',
+    connectionStatus: "connected",
     enableThinking: false,
-    appMode: 'translator',
+    appMode: "translator",
   };
 
   private listeners = new Set<() => void>();
@@ -37,7 +42,7 @@ class ChatStore {
     }
   }
 
-  addMessage(role: 'user' | 'assistant' | 'system', content: string) {
+  addMessage(role: "user" | "assistant" | "system", content: string) {
     const newMessage: Message = {
       id: Math.random().toString(36).substring(7),
       role,
@@ -98,7 +103,7 @@ class ChatStore {
     this.emit();
   }
 
-  setAppMode(appMode: 'translator' | 'chat' | 'agent') {
+  setAppMode(appMode: "translator" | "chat" | "agent") {
     this.state = { ...this.state, appMode };
     this.emit();
   }
@@ -107,7 +112,7 @@ class ChatStore {
     this.state = {
       ...this.state,
       messages: [],
-      status: 'idle',
+      status: "idle",
       error: null,
     };
     this.emit();
@@ -118,7 +123,10 @@ class ChatStore {
   }
 
   getTotalTokens(): number {
-    return this.state.messages.reduce((total, msg) => total + (msg.tokens || 0), 0);
+    return this.state.messages.reduce(
+      (total, msg) => total + (msg.tokens || 0),
+      0,
+    );
   }
 }
 
@@ -133,14 +141,40 @@ export function useChatStore() {
     });
   }, []);
 
-  const addMessage = useCallback((role: 'user' | 'assistant' | 'system', content: string) => chatStore.addMessage(role, content), []);
-  const updateLastMessage = useCallback((content: string, formattedContent?: string) => chatStore.updateLastMessage(content, formattedContent), []);
-  const setStatus = useCallback((status: ChatStatus) => chatStore.setStatus(status), []);
-  const setActiveModel = useCallback((model: string) => chatStore.setActiveModel(model), []);
-  const setError = useCallback((error: string | null) => chatStore.setError(error), []);
-  const setConnectionStatus = useCallback((status: ConnectionStatus) => chatStore.setConnectionStatus(status), []);
-  const setEnableThinking = useCallback((enableThinking: boolean) => chatStore.setEnableThinking(enableThinking), []);
-  const setAppMode = useCallback((mode: 'translator' | 'chat' | 'agent') => chatStore.setAppMode(mode), []);
+  const addMessage = useCallback(
+    (role: "user" | "assistant" | "system", content: string) =>
+      chatStore.addMessage(role, content),
+    [],
+  );
+  const updateLastMessage = useCallback(
+    (content: string, formattedContent?: string) =>
+      chatStore.updateLastMessage(content, formattedContent),
+    [],
+  );
+  const setStatus = useCallback(
+    (status: ChatStatus) => chatStore.setStatus(status),
+    [],
+  );
+  const setActiveModel = useCallback(
+    (model: string) => chatStore.setActiveModel(model),
+    [],
+  );
+  const setError = useCallback(
+    (error: string | null) => chatStore.setError(error),
+    [],
+  );
+  const setConnectionStatus = useCallback(
+    (status: ConnectionStatus) => chatStore.setConnectionStatus(status),
+    [],
+  );
+  const setEnableThinking = useCallback(
+    (enableThinking: boolean) => chatStore.setEnableThinking(enableThinking),
+    [],
+  );
+  const setAppMode = useCallback(
+    (mode: "translator" | "chat" | "agent") => chatStore.setAppMode(mode),
+    [],
+  );
   const clearChat = useCallback(() => chatStore.clearChat(), []);
 
   return {

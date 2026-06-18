@@ -11,6 +11,7 @@ interface InputBarProps {
 }
 
 const HISTORY_FILE = path.join(os.homedir(), '.english_cli_history');
+const COMMANDS = ['/help', '/clear', '/read', '/write', '/ls', '/pwd', '/mode', '/model', '/exit'];
 
 function loadHistory(): string[] {
   try {
@@ -73,6 +74,26 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
 
     const currentVal = stateRef.current.val;
     const currentCol = stateRef.current.idx;
+
+    const getSuggestion = (val: string) => {
+      if (!val.startsWith('/') || val.length === 0 || val.includes(' ')) return '';
+      const match = COMMANDS.find(cmd => cmd.startsWith(val.toLowerCase()));
+      if (match && match !== val.toLowerCase()) {
+        return match.slice(val.length);
+      }
+      return '';
+    };
+    
+    const suggestion = getSuggestion(currentVal);
+
+    // Tab to autocomplete
+    if (key.tab) {
+      if (suggestion && currentCol === currentVal.length) {
+        const newVal = currentVal + suggestion;
+        updateState(newVal, newVal.length);
+      }
+      return;
+    }
 
     // Enter to submit
     if (key.return) {
@@ -141,7 +162,12 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
 
     // Arrow Right
     if (key.rightArrow) {
-      updateState(currentVal, Math.min(currentVal.length, currentCol + 1));
+      if (suggestion && currentCol === currentVal.length) {
+        const newVal = currentVal + suggestion;
+        updateState(newVal, newVal.length);
+      } else {
+        updateState(currentVal, Math.min(currentVal.length, currentCol + 1));
+      }
       return;
     }
 
@@ -165,7 +191,6 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
     // Ignore special navigation keys for simplicity
     if (
       key.escape ||
-      key.tab ||
       key.meta ||
       key.ctrl
     ) {
@@ -183,11 +208,21 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
   const isThinking = status === 'thinking' || status === 'calling_tool';
 
   const renderInputText = () => {
+    const suggestion = (() => {
+      if (!value.startsWith('/') || value.length === 0 || value.includes(' ')) return '';
+      const match = COMMANDS.find(cmd => cmd.startsWith(value.toLowerCase()));
+      if (match && match !== value.toLowerCase()) {
+        return match.slice(value.length);
+      }
+      return '';
+    })();
+
     if (cursorIndex === value.length) {
       return (
         <>
           <Text color="white">{value}</Text>
           <Text color="cyan" dimColor>█</Text>
+          {suggestion && <Text color="gray">{suggestion}</Text>}
         </>
       );
     }

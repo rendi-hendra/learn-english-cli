@@ -1,4 +1,4 @@
-export type MessageRole = 'user' | 'assistant' | 'system';
+export type MessageRole = "user" | "assistant" | "system";
 
 export interface Message {
   id: string;
@@ -9,9 +9,14 @@ export interface Message {
   formattedContent?: string;
 }
 
-export type ChatStatus = 'idle' | 'thinking' | 'calling_tool' | 'complete' | 'error';
+export type ChatStatus =
+  | "idle"
+  | "thinking"
+  | "calling_tool"
+  | "complete"
+  | "error";
 
-export type ConnectionStatus = 'connected' | 'disconnected';
+export type ConnectionStatus = "connected" | "disconnected";
 
 export interface ChatState {
   messages: Message[];
@@ -20,5 +25,5 @@ export interface ChatState {
   error: string | null;
   connectionStatus: ConnectionStatus;
   enableThinking: boolean;
-  appMode: 'translator' | 'chat' | 'agent';
+  appMode: "translator" | "chat" | "agent";
 }
