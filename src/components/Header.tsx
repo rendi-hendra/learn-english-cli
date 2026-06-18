@@ -29,8 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
       borderStyle="round"
       borderColor="cyan"
       flexDirection="column"
-      paddingX={1}
-      width={60}
+      paddingX={0}
       marginBottom={0}
     >
       <Box justifyContent="space-between" marginBottom={0}>

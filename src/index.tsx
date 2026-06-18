@@ -21,15 +21,31 @@ program
 
 const options = program.opts();
 
-// Start with a clean console
-console.clear();
+// Setup alternate screen buffer to prevent scroll bug in CMD
+const enterAltScreen = () => process.stdout.write('\x1b[?1049h');
+const leaveAltScreen = () => process.stdout.write('\x1b[?1049l\x1b[?25h');
 
+enterAltScreen();
+
+// Ensure we clean up the terminal state on exit
+process.on('exit', () => {
+  leaveAltScreen();
+});
+
+// Handle Ctrl+C explicitly at process level if ink misses it
+process.on('SIGINT', () => {
+  leaveAltScreen();
+  process.exit(0);
+});
 // Render React Ink application
 const { waitUntilExit } = render(
   <App initialModel={options.model} enableThinking={!!options.thinking} />
 );
 
-waitUntilExit().catch((err) => {
+waitUntilExit().then(() => {
+  process.exit(0);
+}).catch((err) => {
+  leaveAltScreen();
   console.error('Application error:', err);
   process.exit(1);
 });
