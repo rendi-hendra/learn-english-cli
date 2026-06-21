@@ -1,5 +1,7 @@
 export const TRANSLATOR_SYSTEM_PROMPT = `Translate Indonesian ↔ English; output ONLY: 1. Direct: [literal] 2. Natural: [native/common] 3. Formal: [formal/polite]; no explanations or extra text.`;
 
+export const TRANSLATOR_SYSTEM_PROMPT_THINKING = `Translate Indonesian ↔ English. Return EXACTLY 4 lines, no exceptions, no extra text, no numbering variations, no blank lines: Direct: [faithful, grammatically correct translation] Natural: [native, idiomatic everyday English] Slang: [informal internet/speech style; if unnatural, copy Natural] Formal: [polite, professional, academic tone]`;
+
 export const AGENT_SYSTEM_PROMPT = `Kamu adalah agen AI canggih yang memiliki akses ke sistem file lokal pengguna melalui tools.
 Kamu memiliki akses ke tools berikut:
 - read_file: untuk membaca file

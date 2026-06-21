@@ -158,8 +158,11 @@ export function renderMarkdownWithGlow(markdown: string): string {
   const glowPath = findGlowPath();
   if (glowPath) {
     try {
-      // Run glow with dark style and width 56 (fits perfectly inside TUI bounds)
-      const output = execSync(`"${glowPath}" -s dark -w 56 -`, {
+      // Get terminal width dynamically, fallback to 80, and subtract padding for Ink TUI borders
+      const cols = process.stdout.columns || 80;
+      const targetWidth = Math.max(40, cols - 8);
+      
+      const output = execSync(`"${glowPath}" -s dark -w ${targetWidth} -`, {
         input: markdown,
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'ignore'],
@@ -167,6 +170,11 @@ export function renderMarkdownWithGlow(markdown: string): string {
       
       // Strip any leading markdown header symbols (e.g. #, ##, ###) while preserving colors/indentation
       let cleaned = output.trimEnd();
+      
+      // Remove any leading empty lines that Glow might add, carefully preserving ANSI color codes
+      while (cleaned.match(/^((?:\x1B\[[0-9;]*[a-zA-Z])*)[ \t]*[\r\n]+/)) {
+        cleaned = cleaned.replace(/^((?:\x1B\[[0-9;]*[a-zA-Z])*)[ \t]*[\r\n]+/, '$1');
+      }
       cleaned = cleaned.replace(/^((?:[ \t]|\u001b\[[0-9;]*m)*)#+[ \t]*/gm, '$1');
       return cleaned;
     } catch (err) {

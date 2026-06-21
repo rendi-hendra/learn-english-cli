@@ -1,0 +1,25 @@
+flowchart TD
+    A("User Input Terminal") --> B{"Mode Aplikasi"}
+    
+    B -->|"Translator"| C["Injeksi System Prompt Translator"]
+    C --> D{"Thinking Mode?"}
+    D -->|"Aktif"| E["Prompt Khusus (4 Baris)"]
+    D -->|"Nonaktif"| F["Prompt Normal (3 Baris)"]
+    E --> G["Streaming LLM API"]
+    F --> G
+    
+    B -->|"Chat"| H["Konversi Riwayat Percakapan"]
+    H --> G
+    
+    G --> I["Render Teks Real-time"]
+    I --> J{"Selesai?"}
+    J -->|"Belum"| G
+    J -->|"Ya"| K["Glow CLI Formatting"]
+    K --> L("Tampilan UI Akhir Terminal")
+
+    B -->|"Agent"| M["routeUserCommand"]
+    M --> N{"Terdeteksi Command?"}
+    N -->|"Ya (Bisa Eksekusi)"| O["Jalankan Fungsi File System"]
+    O --> P["Tampilkan Raw Output"]
+    P --> L
+    N -->|"Tidak"| H
