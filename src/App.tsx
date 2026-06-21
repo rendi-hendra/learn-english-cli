@@ -182,7 +182,7 @@ export const App: React.FC<AppProps> = ({
     let currentApiMessages = appMode === "translator"
       ? [{ role: "user" as const, content: sanitized }]
       : [
-          ...apiHistory.map((m) => ({ role: m.role as any, content: m.content })),
+          ...apiHistory.map((m: any) => ({ role: m.role as any, content: m.content })),
           { role: "user" as const, content: sanitized },
         ];
 
