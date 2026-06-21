@@ -1,5 +1,6 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { loadEnv } from "../utils/envConfig.js";
+import { AppError, ErrorCode } from "../utils/errors.js";
 
 loadEnv();
 
@@ -29,8 +30,9 @@ class ModelManager {
       typeof modelName !== "string" ||
       modelName.trim() === ""
     ) {
-      throw new Error(
-        "INVALID_MODEL_NAME: Model name must be a valid string.",
+      throw new AppError(
+        ErrorCode.INVALID_MODEL,
+        "Model name must be a valid string."
       );
     }
 
@@ -48,7 +50,10 @@ class ModelManager {
       apiKey.trim() === "" ||
       apiKey === "your_openai_api_key_here"
     ) {
-      throw new Error("OPENAI_API_KEY_MISSING");
+      throw new AppError(
+        ErrorCode.API_KEY_MISSING,
+        "OpenAI API Key is missing. Please set OPENAI_API_KEY in your .env file."
+      );
     }
 
     const baseURL = process.env.OPENAI_BASE_URL || undefined;
@@ -71,7 +76,11 @@ class ModelManager {
       this.cache.set(cacheKey, model);
       return model;
     } catch (error: any) {
-      throw new Error(`MODEL_INITIALIZATION_FAILED: ${error.message}`);
+      throw new AppError(
+        ErrorCode.INVALID_MODEL,
+        `Model initialization failed: ${error.message}`,
+        { originalError: error }
+      );
     }
   }
 

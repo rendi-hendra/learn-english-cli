@@ -210,6 +210,7 @@ learn-english-cli/
 │   ├── utils/                  # Utilitas fungsional kecil (Helper)
 │   │   ├── commandExecutor.ts  # Eksekutor perintah filesystem dengan sanitasi path
 │   │   ├── envConfig.ts        # Pengelola dan validasi file .env
+│   │   ├── errors.ts           # Defisini AppError dan ErrorCode yang type-safe
 │   │   ├── markdown.ts         # Parser Markdown kustom dan pengait ke Glow CLI
 │   │   ├── modelConfig.ts      # Cache penyimpan referensi model AI terakhir yang digunakan
 │   │   └── validation.ts       # InputValidator: validasi input, rate limiting, sanitasi path
