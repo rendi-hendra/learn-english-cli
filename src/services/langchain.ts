@@ -36,6 +36,13 @@ export class MessageBuilder {
       systemPrompt = AGENT_SYSTEM_PROMPT;
     }
 
+    // Validation: Ensure system prompt is present for modes that require it
+    if (config.mode !== "chat") {
+      if (!systemPrompt || systemPrompt.trim() === "") {
+        throw new Error(`MessageBuilder: Missing or empty system prompt for mode '${config.mode}'`);
+      }
+    }
+
     // Inject System Prompt if it exists
     if (systemPrompt) {
       lcMessages.push(new SystemMessage(systemPrompt));
@@ -44,7 +51,7 @@ export class MessageBuilder {
     // 2. Inject User/Assistant/System messages
     for (const msg of config.messages) {
       if (!msg.content) continue;
-      
+
       // Prevent duplicating system prompts if history somehow contains one
       if (msg.role === "system") {
         lcMessages.push(new SystemMessage(msg.content));
@@ -83,7 +90,11 @@ class ModelManager {
 
   public getModel(modelName: string, enableThinking: boolean): ChatOpenAI {
     // Validate input parameters
-    if (!modelName || typeof modelName !== "string" || modelName.trim() === "") {
+    if (
+      !modelName ||
+      typeof modelName !== "string" ||
+      modelName.trim() === ""
+    ) {
       throw new Error("INVALID_MODEL_NAME: Model name must be a valid string.");
     }
 
@@ -124,7 +135,7 @@ class ModelManager {
           baseURL,
         },
         modelName: modelName,
-        streaming: false,
+        streaming: true,
         modelKwargs,
       });
 
@@ -143,7 +154,10 @@ class ModelManager {
 }
 
 // Preserve existing API signature for backward compatibility
-export function getLangChainModel(modelName: string, enableThinking: boolean): ChatOpenAI {
+export function getLangChainModel(
+  modelName: string,
+  enableThinking: boolean,
+): ChatOpenAI {
   return ModelManager.getInstance().getModel(modelName, enableThinking);
 }
 
