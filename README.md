@@ -50,6 +50,22 @@ Untuk menjamin tampilan yang luar biasa tanpa memperlambat aplikasi:
 
 ---
 
+## 🛠️ Teknologi yang Digunakan
+
+Aplikasi ini dibina di atas ekosistem JavaScript/TypeScript modern dengan mengintegrasikan pustaka-pustaka terdepan di kelasnya:
+
+*   **[Ink](https://github.com/vadimdemedes/ink) & [React](https://react.dev/)**: Membangun UI terminal komersial yang dinamis layaknya aplikasi web (menggunakan *flexbox*, *hooks*, dan *state*).
+*   **[LangChain](https://js.langchain.com/) & [LangGraph](https://langchain-ai.github.io/langgraphjs/)**: Kerangka kerja utama untuk orkestrasi LLM (*Large Language Model*), eksekusi percakapan *streaming*, dan manajemen *state/graph* eksekusi agen yang tangguh.
+*   **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)**: Menggunakan `@modelcontextprotocol/sdk` dan `@langchain/mcp-adapters` sebagai standar interkoneksi agen AI ke kapabilitas lokal (sistem file).
+*   **[OpenAI SDK](https://github.com/openai/openai-node)**: Klien API standar untuk menangani *prompt* dan panggilan AI.
+*   **[Zod](https://zod.dev/)**: Validasi skema dan penulisan spesifikasi parameter *tool/function calling* agen dengan ketat.
+*   **[Commander](https://github.com/tj/commander.js)**: Parsing argumen CLI (Command-Line Interface) yang rapi saat aplikasi dipanggil di terminal.
+*   **[Chalk](https://github.com/chalk/chalk) & [Ora](https://github.com/sindresorhus/ora)**: Desain UX terminal yang kaya (warna kustom & *spinner* animasi).
+*   **[Marked](https://marked.js.org/) & [cli-highlight](https://github.com/felixge/node-cli-highlight)**: Mesin parser cadangan (*fallback*) untuk markdown jika CLI `glow` tidak terpasang.
+*   **[9Router](https://github.com/decolua/9router) *(Sangat Direkomendasikan)***: Aplikasi ini sangat dioptimalkan untuk dikonfigurasikan bersama 9Router sebagai *Smart Proxy/Gateway*. 9Router membantu memangkas penggunaan/biaya token melalui fitur *Response Token Caching* (RTK) dan mengatur rute *fallback* model ke penyedia pihak ketiga seperti Alibaba Cloud Model Studio.
+
+---
+
 ## 📦 Prasyarat & Instalasi
 
 1.  Pastikan Anda telah menginstal **Node.js** (v18 ke atas) dan **npm**.
