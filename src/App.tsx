@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Box } from "ink";
 import { useChatStore } from "./store/chatStore.js";
-import { Header } from "./components/Header.js";
-import { ChatView } from "./components/ChatView.js";
-import { StatusBar } from "./components/StatusBar.js";
-import { InputBar } from "./components/InputBar.js";
-import { streamLangChainChat, routeUserCommand } from "./services/langchain.js";
-import { renderMarkdownWithGlow } from "./utils/markdown.js";
 import { ModelSelector } from "./components/ModelSelector.js";
 import { ModeSelector } from "./components/ModeSelector.js";
 import { saveLastModel } from "./utils/modelConfig.js";
-import { executeCommandLocally } from "./utils/commandExecutor.js";
-import { InputValidator } from "./utils/validation.js";
+import { TranslatorMode } from "./components/TranslatorMode.js";
+import { ChatMode } from "./components/ChatMode.js";
+import { AgentMode } from "./components/AgentMode.js";
 
 interface AppProps {
   initialModel?: string;
@@ -23,28 +17,14 @@ export const App: React.FC<AppProps> = ({
   enableThinking = false,
 }) => {
   const {
-    currentConversation,
-    apiHistory,
-    status,
     activeModel,
-    error,
-    connectionStatus,
-    messageCount,
-    totalTokens,
-    enableThinking: storeEnableThinking,
-    startConversation,
-    updateAssistantMessage,
-    updateSystemMessage,
-    addApiHistory,
-    setStatus,
+    appMode,
     setActiveModel,
-    setError,
-    setConnectionStatus,
     setEnableThinking,
     setAppMode,
-    clearChat,
+    startConversation,
+    updateSystemMessage,
   } = useChatStore();
-  const appMode = useChatStore().appMode;
 
   const [modelSelected, setModelSelected] = useState(!!initialModel);
   const [modeSelecting, setModeSelecting] = useState(false);
@@ -62,188 +42,6 @@ export const App: React.FC<AppProps> = ({
   useEffect(() => {
     setEnableThinking(enableThinking);
   }, [enableThinking, setEnableThinking]);
-
-  // Handle Ctrl+L (clear screen)
-  const handleClearScreen = () => {
-    // Note: We don't use process.stdout.write to avoid breaking Ink's internal layout.
-    clearChat();
-  };
-
-  const handleSubmit = async (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-
-    // Validate and sanitize user input
-    const allowedCommands = ["/exit", "/clear", "/help", "/mode", "/model", "/read", "/write", "/ls", "/pwd"];
-    const allowedModels = ["qwen3.7-max", "gpt-4o", "gpt-3.5-turbo", "gpt-4o-mini", "o1-mini", "o1-preview", "gemini-2.5-flash", "gemma-2b-it", "gpt-4", "claude-3-5-sonnet", "claude-3-opus", "gemini-1.5-flash", "gemini-1.5-pro"];
-
-    const validation = InputValidator.validateUserInput(trimmed, {
-      maxInputLength: 2000, // Maximum character limit
-      allowedCommands,
-      allowedModels,
-    });
-
-    if (!validation.isValid) {
-      startConversation(trimmed);
-      updateSystemMessage(`[Validation Error] ${validation.error}`);
-      return;
-    }
-
-    const sanitized = validation.sanitizedInput || trimmed;
-
-    // Do NOT clear terminal using process.stdout.write('\x1b[2J\x1b[H') 
-    // because it breaks Ink's single-screen control.
-
-    // Check if it's a direct command
-    if (trimmed.startsWith("/")) {
-      const parts = trimmed.split(" ");
-      const command = parts[0];
-      const args = parts.slice(1).join(" ").trim();
-
-      // UI Commands
-      switch (command) {
-        case "/exit":
-          process.exit(0);
-          break;
-        case "/clear":
-          clearChat();
-          startConversation("/clear");
-          updateSystemMessage("Riwayat obrolan telah dibersihkan.");
-          return;
-        case "/help":
-          startConversation("/help");
-          updateSystemMessage(
-            `Bantuan AI CLI:\n• /help                 - Menampilkan pesan bantuan ini\n• /clear                - Menghapus riwayat obrolan\n• /read [path_file]     - Membaca isi file lokal ke dalam konteks obrolan\n• /write [path_file] [content] - Menulis konten ke file\n• /ls [path_dir]        - Menampilkan daftar isi direktori\n• /pwd                  - Menampilkan direktori kerja saat ini\n• /mode                 - Menampilkan menu interaktif untuk beralih mode\n• /model                - Menampilkan menu interaktif untuk memilih model\n• /exit                 - Keluar dari aplikasi\n• Ctrl+L                - Membersihkan layar terminal\n• Ctrl+C                - Keluar dari aplikasi`,
-          );
-          return;
-        case "/mode":
-          if (args) {
-            const m = args.toLowerCase();
-            if (m === "translator" || m === "chat" || m === "agent") {
-              setAppMode(m as any);
-              startConversation(`/mode ${m}`);
-              updateSystemMessage(
-                `Aplikasi beralih ke mode: ${m.toUpperCase()}`,
-              );
-            } else {
-              startConversation(`/mode ${m}`);
-              updateSystemMessage(
-                `Mode tidak valid. Pilihan: translator, chat, agent.`,
-              );
-            }
-          } else {
-            setModeSelecting(true);
-          }
-          return;
-        case "/model":
-          if (args) {
-            const allowedModels = ["qwen3.7-max", "gpt-4o", "gpt-3.5-turbo", "gpt-4o-mini", "o1-mini", "o1-preview", "gemini-2.5-flash", "gemma-2b-it", "gpt-4", "claude-3-5-sonnet", "claude-3-opus", "gemini-1.5-flash", "gemini-1.5-pro"];
-            if (!InputValidator.validateModel(args, allowedModels)) {
-              startConversation(`/model ${args}`);
-              updateSystemMessage(`[Validation Error] Model "${args}" tidak diizinkan atau tidak dikenal.`);
-              return;
-            }
-            setActiveModel(args);
-            saveLastModel(args);
-            startConversation(`/model ${args}`);
-            updateSystemMessage(`Model berhasil diubah ke: ${args}`);
-          } else {
-            setModelSelected(false);
-          }
-          return;
-      }
-
-      // File system commands
-      const cmdResult = executeCommandLocally(sanitized);
-      if (cmdResult) {
-        startConversation(sanitized);
-        const outputMsg = command === "/read" 
-          ? `File berhasil dimuat ke dalam memori sesi.\n\n${cmdResult.output}`
-          : cmdResult.output;
-        const formattedOutput = renderMarkdownWithGlow(outputMsg);
-        updateSystemMessage(outputMsg, formattedOutput);
-        return;
-      }
-
-      startConversation(sanitized);
-      updateSystemMessage(
-        `Perintah tidak dikenal: ${command}. Ketik /help untuk melihat bantuan.`,
-      );
-      return;
-    }
-
-    // Process as a prompt for the model
-    startConversation(sanitized);
-    setStatus("thinking");
-    setError(null);
-
-    // Prompts have been imported from src/config/prompts.ts
-
-    let currentApiMessages = appMode === "translator"
-      ? [{ role: "user" as const, content: sanitized }]
-      : [
-          ...apiHistory.map((m: any) => ({ role: m.role as any, content: m.content })),
-          { role: "user" as const, content: sanitized },
-        ];
-
-    try {
-      let fullResponse = "";
-
-      if (appMode === "agent") {
-        updateAssistantMessage("Menganalisis permintaan...");
-        const routeResult = await routeUserCommand(sanitized, activeModel);
-        
-        if (routeResult.startsWith("/")) {
-          const cmdResult = executeCommandLocally(routeResult);
-          if (cmdResult) {
-            updateAssistantMessage(`Menjalankan perintah: ${routeResult}`);
-            
-            const formattedOutput = renderMarkdownWithGlow(cmdResult.output);
-            updateSystemMessage(cmdResult.output, formattedOutput);
-            
-            setConnectionStatus("connected");
-            setStatus("complete");
-            return;
-          }
-        }
-        
-        // Fallback to regular chat if model returns "chat" or non-command
-        const generator = streamLangChainChat(currentApiMessages, activeModel, storeEnableThinking, "chat");
-        for await (const chunk of generator) {
-           fullResponse += chunk;
-           updateAssistantMessage(fullResponse);
-        }
-      } else {
-        const generator = streamLangChainChat(currentApiMessages, activeModel, storeEnableThinking, appMode);
-        for await (const chunk of generator) {
-           fullResponse += chunk;
-           updateAssistantMessage(fullResponse);
-        }
-      }
-
-      if (fullResponse) {
-        const glowFormatted = renderMarkdownWithGlow(fullResponse);
-        updateAssistantMessage(fullResponse, glowFormatted);
-      } else {
-        updateAssistantMessage("");
-      }
-
-      setConnectionStatus("connected");
-      setStatus("complete");
-    } catch (err: any) {
-      setStatus("error");
-      if (
-        err.message.includes("internet") ||
-        err.message.includes("koneksi") ||
-        err.message.includes("putus")
-      ) {
-        setConnectionStatus("disconnected");
-      }
-      const errMsg = err.message || "Terjadi kesalahan sistem.";
-      setError(errMsg);
-      updateAssistantMessage(`Error: ${errMsg}`);
-    }
-  };
 
   if (!modelSelected) {
     return (
@@ -272,31 +70,37 @@ export const App: React.FC<AppProps> = ({
       />
     );
   }
-  return (
-    <Box flexDirection="column">
-      <Header
-        model={activeModel}
-        messageCount={messageCount}
-        connectionStatus={connectionStatus}
-        status={status}
-        appMode={appMode}
-      />
 
-      <Box flexDirection="column">
-        <ChatView currentConversation={currentConversation} />
-      </Box>
-
-      <StatusBar
-        status={status}
-        tokenCount={totalTokens}
-        enableThinking={storeEnableThinking}
-      />
-
-      <InputBar
-        onSubmit={handleSubmit}
-        onClearScreen={handleClearScreen}
-        status={status}
-      />
-    </Box>
-  );
+  // Render mode-specific components
+  switch (appMode) {
+    case "translator":
+      return (
+        <TranslatorMode
+          onExitModeSelection={() => setModeSelecting(true)}
+          onExitModelSelection={() => setModelSelected(false)}
+        />
+      );
+    case "chat":
+      return (
+        <ChatMode
+          onExitModeSelection={() => setModeSelecting(true)}
+          onExitModelSelection={() => setModelSelected(false)}
+        />
+      );
+    case "agent":
+      return (
+        <AgentMode
+          onExitModeSelection={() => setModeSelecting(true)}
+          onExitModelSelection={() => setModelSelected(false)}
+        />
+      );
+    default:
+      return (
+        <ChatMode
+          onExitModeSelection={() => setModeSelecting(true)}
+          onExitModelSelection={() => setModelSelected(false)}
+        />
+      );
+  }
 };
+
