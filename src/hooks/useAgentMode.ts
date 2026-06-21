@@ -1,8 +1,9 @@
 import { useChatStore } from "../store/chatStore.js";
-import { streamLangChainChat, routeUserCommand } from "../services/langchain.js";
+import { streamLangChainChat } from "../services/langchain.js";
 import { executeCommandLocally } from "../utils/commandExecutor.js";
 import { renderMarkdownWithGlow } from "../utils/markdown.js";
 import { AppError } from "../utils/errors.js";
+import { routeAgentRequest } from "../services/agentRouter.js";
 
 export function useAgentMode() {
   const {
@@ -23,21 +24,23 @@ export function useAgentMode() {
     try {
       let fullResponse = "";
       updateAssistantMessage("Menganalisis permintaan...");
-      const routeResult = await routeUserCommand(sanitizedInput, activeModel);
+      const routing = await routeAgentRequest(sanitizedInput, activeModel);
 
-      if (routeResult.startsWith("/")) {
-        const cmdResult = executeCommandLocally(routeResult);
+      if (routing.type === "command" && routing.command) {
+        const cmdResult = executeCommandLocally(routing.command);
         if (cmdResult) {
-          updateAssistantMessage(`Menjalankan perintah: ${routeResult}`);
+          updateAssistantMessage(`Menjalankan perintah: ${routing.command}`);
           const formattedOutput = renderMarkdownWithGlow(cmdResult.output);
           updateSystemMessage(cmdResult.output, formattedOutput);
           setConnectionStatus("connected");
           setStatus("complete");
           return;
         }
+      } else if (routing.type === "error") {
+        throw new Error(routing.reason);
       }
 
-      // Fallback to regular chat
+      // Fallback to regular chat (routing.type === "chat")
       const currentApiMessages = [
         ...apiHistory.map((m: any) => ({ role: m.role as any, content: m.content })),
         { role: "user" as const, content: sanitizedInput },
