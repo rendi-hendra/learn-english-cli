@@ -144,8 +144,38 @@ Untuk penjelasan yang lebih mendalam mengenai arsitektur, integrasi, dan cara ke
 
 ## 📂 Struktur File Utama
 
-*   [`src/components/InputBar.tsx`](file:///d:/Coding/Javascript/NodeJs/learn-english-cli/src/components/InputBar.tsx): Mengatur input teks, visualisasi kursor, navigasi kursor, penghapusan presisi, dan navigasi command history.
-*   [`src/components/StatusBar.tsx`](file:///d:/Coding/Javascript/NodeJs/learn-english-cli/src/components/StatusBar.tsx): Menampilkan status sistem (`THINKING` atau `GENERATING`), estimasi token, animasi loader spinner, dan detail mode thinking.
-*   [`src/utils/markdown.ts`](file:///d:/Coding/Javascript/NodeJs/learn-english-cli/src/utils/markdown.ts): Mengatur rendering markdown built-in, deteksi otomatis path `glow.exe` dari winget, serta regex pembersih tanda heading (`#`).
-*   [`src/App.tsx`](file:///d:/Coding/Javascript/NodeJs/learn-english-cli/src/App.tsx): Komponen pengikat utama aplikasi, menangani input, perintah `/`, dan orkestrasi pemanggilan API OpenAI.
-*   [`src/store/chatStore.ts`](file:///d:/Coding/Javascript/NodeJs/learn-english-cli/src/store/chatStore.ts): State management global (Flux-like) untuk mengelola data pesan chat, status, model aktif, dan konfigurasi thinking.
+Proyek ini dibangun secara modular untuk mendukung antarmuka terminal interaktif (TUI), manajemen *state*, orkestrasi model AI menggunakan LangChain & LangGraph, dan konektivitas Model Context Protocol (MCP).
+
+```text
+learn-english-cli/
+├── doc/                        # Dokumentasi arsitektur dan tutorial
+│   ├── 9router.md              # Panduan setup & konfigurasi 9Router dan Alibaba Cloud
+│   ├── langchain.md            # Dokumentasi arsitektur LangChain & LangGraph
+│   └── mcp.md                  # Dokumentasi Model Context Protocol (MCP)
+├── src/
+│   ├── components/             # Komponen antarmuka Terminal (berbasis React/Ink)
+│   │   ├── App.tsx             # Komponen utama pengikat input, perintah, & perutean AI
+│   │   ├── ChatView.tsx        # Tampilan riwayat percakapan AI & pengguna
+│   │   ├── InputBar.tsx        # Input teks dinamis dengan navigasi presisi & histori kursor
+│   │   ├── ModeSelector.tsx    # Menu UI interaktif untuk berganti mode (Translator/Chat/Agent)
+│   │   ├── ModelSelector.tsx   # Menu UI interaktif untuk berganti Model LLM
+│   │   └── StatusBar.tsx       # Indikator status (Thinking/Generating), dan kalkulasi token
+│   ├── config/
+│   │   └── prompts.ts          # Variabel konstanta sistem dan Prompt bawaan (Translator/Router)
+│   ├── services/               # Lapisan layanan utama untuk integrasi AI dan MCP
+│   │   ├── langchain.ts        # Orkestrasi streaming LangChain dan Agen terstruktur via LangGraph
+│   │   └── simpleMcpServer.ts  # Server MCP asli berspesifikasi JSON-RPC untuk File System lokal
+│   ├── store/
+│   │   └── chatStore.ts        # State management (Global/Flux-like) untuk data obrolan dan UI
+│   ├── tools/
+│   │   └── index.ts            # MCP Client berbasis @langchain/mcp-adapters penyedia alat otomatis
+│   ├── utils/                  # Utilitas fungsional kecil (Helper)
+│   │   ├── commandExecutor.ts  # Eksekutor perintah filesystem manual untuk mode Chat/Translator
+│   │   ├── markdown.ts         # Parser Markdown kustom dan pengait ke Glow CLI
+│   │   ├── modelConfig.ts      # Cache penyimpan referensi model AI terakhir yang digunakan
+│   │   └── envConfig.ts        # Pengelola dan validasi file .env
+│   ├── index.tsx               # Titik masuk eksekusi utama aplikasi React/Ink
+│   └── mcp-server.ts           # Skrip entry point terpisah untuk menjalankan MCP Server lokal
+├── .env.example                # Templat kredensial dan konfigurasi dasar API
+└── package.json                # Pengelola dependensi proyek & skrip start/build/dev
+```

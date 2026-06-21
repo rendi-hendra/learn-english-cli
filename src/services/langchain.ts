@@ -80,3 +80,46 @@ export async function* streamLangChainChat(
     yield chunk;
   }
 }
+
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { getFsTools } from "../tools/index.js";
+
+export async function* streamLangChainAgent(
+  messages: { role: string; content: string }[],
+  modelName: string,
+  enableThinking: boolean
+): AsyncGenerator<string, void, unknown> {
+  const llm = getLangChainModel(modelName, enableThinking);
+  const tools = await getFsTools();
+  
+  const agent = createReactAgent({
+    llm,
+    tools,
+  });
+
+  const lcMessages = messages.map(m => {
+    if (m.role === 'user') return new HumanMessage(m.content);
+    if (m.role === 'assistant') return new AIMessage(m.content);
+    return new SystemMessage(m.content);
+  });
+
+  const eventStream = await agent.streamEvents(
+    { messages: lcMessages },
+    { version: "v2" }
+  );
+
+  for await (const event of eventStream) {
+    if (event.event === "on_chat_model_stream") {
+      const chunk = event.data?.chunk?.content;
+      if (chunk && typeof chunk === "string") {
+        yield chunk;
+      }
+    } else if (event.event === "on_tool_start") {
+      yield `\n\n> 🤖 **Mengeksekusi tool:** \`${event.name}\`...\n\n`;
+    } else if (event.event === "on_tool_end") {
+      // Tidak perlu yield hasil tool secara penuh jika terlalu panjang, cukup notifikasi
+      yield `\n\n> ✅ **Tool selesai**\n\n`;
+    }
+  }
+}
+
