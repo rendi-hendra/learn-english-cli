@@ -1,18 +1,39 @@
 import React from 'react';
 import { Box } from 'ink';
-import { Message } from '../types/chat.js';
+import { CurrentConversation } from '../types/chat.js';
 import { MessageComponent } from './Message.js';
 
 interface ChatViewProps {
-  messages: Message[];
+  currentConversation: CurrentConversation | null;
 }
 
-export const ChatView: React.FC<ChatViewProps> = ({ messages }) => {
+export const ChatView: React.FC<ChatViewProps> = ({ currentConversation }) => {
+  if (!currentConversation) {
+    return null; // Empty state
+  }
+
   return (
     <Box flexDirection="column">
-      {messages.map(msg => (
-        <MessageComponent key={msg.id} role={msg.role} content={msg.content} formattedContent={msg.formattedContent} />
-      ))}
+      {/* Always show user message */}
+      <MessageComponent role="user" content={currentConversation.user} />
+      
+      {/* Show system message (e.g. tool results) if it exists */}
+      {currentConversation.system && (
+        <MessageComponent 
+          role="system" 
+          content={currentConversation.system} 
+          formattedContent={currentConversation.systemFormatted} 
+        />
+      )}
+
+      {/* Show assistant message if it exists */}
+      {currentConversation.assistant && (
+        <MessageComponent 
+          role="assistant" 
+          content={currentConversation.assistant} 
+          formattedContent={currentConversation.assistantFormatted} 
+        />
+      )}
     </Box>
   );
 };

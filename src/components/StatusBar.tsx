@@ -27,20 +27,20 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status, tokenCount, enable
     return () => clearInterval(interval);
   }, [status]);
 
-  const getStatusStyled = () => {
+  const getStatusProps = () => {
     switch (status) {
       case 'idle':
-        return chalk.gray('IDLE');
+        return { text: 'IDLE', color: 'gray' };
       case 'thinking':
-        return enableThinking ? chalk.yellow('THINKING') : chalk.blue('GENERATING');
+        return enableThinking ? { text: 'THINKING', color: 'yellow' } : { text: 'GENERATING', color: 'blue' };
       case 'calling_tool':
-        return chalk.magenta('CALLING TOOL');
+        return { text: 'CALLING TOOL', color: 'magenta' };
       case 'complete':
-        return chalk.green('COMPLETE');
+        return { text: 'COMPLETE', color: 'green' };
       case 'error':
-        return chalk.red('ERROR');
+        return { text: 'ERROR', color: 'red' };
       default:
-        return status;
+        return { text: status, color: 'white' };
     }
   };
 
@@ -48,10 +48,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status, tokenCount, enable
     <Box
       borderStyle="single"
       borderColor="gray"
-      paddingX={1}
+      paddingX={0}
       marginTop={0}
       flexDirection="column"
-      width={60}
     >
       <Box flexDirection="row" justifyContent="space-between">
         <Box flexDirection="row">
@@ -63,7 +62,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({ status, tokenCount, enable
             </Box>
           )}
           <Text bold>System Status: </Text>
-          <Text>{getStatusStyled()}</Text>
+          <Text color={getStatusProps().color}>{getStatusProps().text}</Text>
         </Box>
         <Box>
           <Text color="gray">Est. Tokens: </Text>

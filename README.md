@@ -39,6 +39,15 @@ Untuk menjamin tampilan yang luar biasa tanpa memperlambat aplikasi:
     *   **Thinking Mode Aktif**: Spinner status akan berwarna **kuning** dengan label **`System Status: THINKING`** dan detail status **`Thinking: true`**.
     *   **Thinking Mode Non-aktif**: Spinner status akan berwarna **biru** dengan label **`System Status: GENERATING`** dan detail status **`Thinking: false`**.
 
+### 6. 🤖 Mode Agen dengan Akses Filesystem (Filesystem MCP Server)
+*   **Akses Filesystem**: Mode agen memungkinkan AI untuk berinteraksi dengan sistem file lokal melalui perintah-perintah khusus.
+*   **Perintah Filesystem**: Dalam mode agen, AI dapat membaca file, menulis file, dan menjelajahi direktori menggunakan perintah `/read`, `/write`, `/ls`, dan `/pwd`.
+*   **Filesystem MCP Server**: Aplikasi menyertakan implementasi sederhana dari Filesystem MCP Server yang memungkinkan AI untuk berinteraksi dengan file sistem secara aman dan terkontrol.
+
+### 7. 🔗 Arsitektur LangChain & LangGraph
+*   **Stabilitas Eksekusi**: Migrasi dari pemanggilan API model secara langsung (seperti streaming Gemma) ke ekosistem **LangChain/LangGraph** dilakukan untuk memecahkan masalah stabilitas sebelumnya (termasuk kendala *Internal Server Error* saat streaming). Ekosistem ini mengelola *state* dan memori komputasi secara jauh lebih tangguh dan persisten.
+*   **Orkestrasi Agen Terstruktur**: LangGraph memungkinkan pembuatan graf eksekusi yang jelas untuk Agent mode. Setiap *node* dapat mengatur *tools* (seperti Filesystem MCP) secara terprediksi, memudahkan *debugging*, *structured logging*, dan penanganan kesalahan yang lebih baik.
+
 ---
 
 ## 📦 Prasyarat & Instalasi
@@ -90,9 +99,14 @@ Sebelum menjalankan mode produksi, Anda wajib melakukan kompilasi file TypeScrip
 npm run build
 ```
 
-### 3. Menjalankan Mode Produksi (Production Run)
+### 4. Menjalankan Filesystem MCP Server
+Untuk menjalankan Filesystem MCP Server yang memungkinkan akses ke sistem file:
 ```bash
-npm start
+npm run mcp-server
+```
+Secara default, server akan mengizinkan akses ke direktori kerja saat ini. Anda dapat menentukan direktori yang diizinkan dengan:
+```bash
+npm run mcp-server -- /path/to/allowed/directory
 ```
 
 ---
@@ -103,13 +117,28 @@ npm start
 | :--- | :--- |
 | **`/help`** | Menampilkan panduan bantuan CLI. |
 | **`/clear`** | Menghapus seluruh riwayat obrolan dari memori. |
-| **`/model [nama]`** | Menampilkan atau mengubah model AI aktif saat runtime (contoh: `/model gpt-4o`). |
+| **`/read [path]`** | Membaca dan memuat isi berkas lokal ke dalam konteks obrolan (contoh: `/read src/App.tsx`). |
+| **`/write [path] [content]`** | Menulis konten ke file (contoh: `/write notes.txt Hello World`). |
+| **`/ls [path]`** | Menampilkan daftar isi direktori (contoh: `/ls src`). |
+| **`/pwd`** | Menampilkan direktori kerja saat ini. |
+| **`/mode`** | Menampilkan menu interaktif untuk beralih antara 3 mode: **Translator**, **Chat**, atau **Agent**. |
+| **`/model`** | Menampilkan menu antarmuka interaktif untuk memilih model AI. |
+| **`/model [nama]`** | Mengubah model AI aktif secara langsung tanpa menu interaktif. |
 | **`/exit`** | Keluar dari aplikasi. |
 | **`Ctrl + L`** | Membersihkan layar terminal. |
 | **`Ctrl + C`** | Keluar dari aplikasi secara instan. |
 | **`Panah Atas / Bawah`** | Menjelajahi riwayat prompt (Command History). |
 | **`Panah Kiri / Kanan`** | Memindahkan kursor input teks ke kiri dan ke kanan. |
 | **`Backspace / Delete`** | Menghapus karakter di posisi kursor. |
+
+---
+
+## 📚 Dokumentasi Tambahan
+
+Untuk penjelasan yang lebih mendalam mengenai arsitektur, integrasi, dan cara kerja komponen yang digunakan dalam proyek AI CLI ini, silakan baca dokumentasi berikut:
+*   [Arsitektur MCP (Model Context Protocol)](doc/mcp.md)
+*   [Arsitektur LangChain & LangGraph](doc/langchain.md)
+*   [Tutorial Integrasi 9Router & Alibaba Cloud Model Studio](doc/9router.md)
 
 ---
 

@@ -10,6 +10,7 @@ dist/
 
 # Local command history (specific to each user)
 .ai_history
+.last_model
 
 # Logs
 npm-debug.log*
