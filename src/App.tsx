@@ -5,7 +5,7 @@ import { Header } from "./components/Header.js";
 import { ChatView } from "./components/ChatView.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { InputBar } from "./components/InputBar.js";
-import { streamLangChainChat, streamLangChainAgent, routeUserCommand } from "./services/langchain.js";
+import { streamLangChainChat, routeUserCommand } from "./services/langchain.js";
 import { renderMarkdownWithGlow } from "./utils/markdown.js";
 import { ModelSelector } from "./components/ModelSelector.js";
 import { ModeSelector } from "./components/ModeSelector.js";
@@ -165,8 +165,25 @@ export const App: React.FC<AppProps> = ({
       let fullResponse = "";
 
       if (appMode === "agent") {
-        updateAssistantMessage("Mengaktifkan LangGraph Agent...");
-        const generator = streamLangChainAgent(currentApiMessages, activeModel, storeEnableThinking);
+        updateAssistantMessage("Menganalisis permintaan...");
+        const routeResult = await routeUserCommand(trimmed, activeModel);
+        
+        if (routeResult.startsWith("/")) {
+          const cmdResult = executeCommandLocally(routeResult);
+          if (cmdResult) {
+            updateAssistantMessage(`Menjalankan perintah: ${routeResult}`);
+            
+            const formattedOutput = renderMarkdownWithGlow(cmdResult.output);
+            updateSystemMessage(cmdResult.output, formattedOutput);
+            
+            setConnectionStatus("connected");
+            setStatus("complete");
+            return;
+          }
+        }
+        
+        // Fallback to regular chat if model returns "chat" or non-command
+        const generator = streamLangChainChat(currentApiMessages, activeModel, storeEnableThinking, "chat");
         for await (const chunk of generator) {
            fullResponse += chunk;
            updateAssistantMessage(fullResponse);

@@ -10,10 +10,9 @@ AI CLI Terminal adalah aplikasi TUI (Terminal User Interface) modern, interaktif
 Secara default, CLI diprogram sebagai asisten penerjemah dwi-arah yang sangat efisien:
 *   **Deteksi Bahasa Otomatis**: Mendeteksi bahasa masukan secara otomatis dan menerjemahkannya ke bahasa tujuan (Indonesia ke Inggris, Inggris ke Indonesia).
 *   **Penyelarasan Ekspresi Native**: AI akan memilih frasa dan terjemahan paling natural yang biasa digunakan oleh penutur asli (*native speaker*).
-*   **Output Format Ketat**: AI patuh tanpa basa-basi untuk langsung mengeluarkan output dalam format:
-    1.  `Direct`: Terjemahan literal/harfiah kata demi kata.
-    2.  `natural`: Terjemahan paling umum dan kasual menurut penutur asli.
-    3.  `formal`: Terjemahan formal/sopan, atau untuk keperluan bisnis/akademik.
+*   **Output Format Ketat**: AI patuh tanpa basa-basi untuk langsung mengeluarkan output dalam format struktural. 
+    *   Pada **Mode Normal**, AI menghasilkan 3 baris: `Direct`, `Natural`, dan `Formal`.
+    *   Pada **Thinking Mode Aktif**, AI menghasilkan 4 baris yang lebih presisi: `Direct`, `Natural`, `Slang` (bahasa gaul/informal), dan `Formal`.
 
 ### 2. 📝 Hybrid Rendering Markdown (Glow & Custom JS)
 Untuk menjamin tampilan yang luar biasa tanpa memperlambat aplikasi:
@@ -38,6 +37,7 @@ Untuk menjamin tampilan yang luar biasa tanpa memperlambat aplikasi:
 *   **Informasi Status Detail**:
     *   **Thinking Mode Aktif**: Spinner status akan berwarna **kuning** dengan label **`System Status: THINKING`** dan detail status **`Thinking: true`**.
     *   **Thinking Mode Non-aktif**: Spinner status akan berwarna **biru** dengan label **`System Status: GENERATING`** dan detail status **`Thinking: false`**.
+*   **Injeksi Prompt Khusus**: Saat diaktifkan bersamaan dengan Mode Translator, sistem secara otomatis mengganti *system prompt* dengan versi khusus (*Thinking Prompt*) yang dioptimalkan untuk mengekstrak terjemahan bahasa hingga 4 gaya bahasa yang sangat presisi (termasuk *Slang*).
 
 ### 6. 🤖 Mode Agen dengan Akses Filesystem (Filesystem MCP Server)
 *   **Akses Filesystem**: Mode agen memungkinkan AI untuk berinteraksi dengan sistem file lokal melalui perintah-perintah khusus.

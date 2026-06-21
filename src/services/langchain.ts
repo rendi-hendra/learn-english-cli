@@ -1,8 +1,16 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { loadEnv } from "../utils/envConfig.js";
-import { TRANSLATOR_SYSTEM_PROMPT, ROUTER_SYSTEM_PROMPT } from "../config/prompts.js";
-import { HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
+import {
+  TRANSLATOR_SYSTEM_PROMPT,
+  TRANSLATOR_SYSTEM_PROMPT_THINKING,
+  ROUTER_SYSTEM_PROMPT,
+} from "../config/prompts.js";
+import {
+  HumanMessage,
+  AIMessage,
+  SystemMessage,
+} from "@langchain/core/messages";
 
 loadEnv();
 
@@ -42,12 +50,12 @@ export function getLangChainModel(modelName: string, enableThinking: boolean) {
 
 export async function routeUserCommand(
   userMessage: string,
-  modelName: string
+  modelName: string,
 ): Promise<string> {
   const llm = getLangChainModel(modelName, false); // No need for thinking mode for simple routing
   const response = await llm.invoke([
     new SystemMessage(ROUTER_SYSTEM_PROMPT),
-    new HumanMessage(userMessage)
+    new HumanMessage(userMessage),
   ]);
   return typeof response.content === "string" ? response.content.trim() : "";
 }
@@ -56,21 +64,24 @@ export async function* streamLangChainChat(
   messages: { role: string; content: string }[],
   modelName: string,
   enableThinking: boolean,
-  mode: "translator" | "chat"
+  mode: "translator" | "chat",
 ): AsyncGenerator<string, void, unknown> {
   const llm = getLangChainModel(modelName, enableThinking);
   const parser = new StringOutputParser();
 
-  const lcMessages = messages.map(m => {
-    if (m.role === 'user') return new HumanMessage(m.content);
-    if (m.role === 'assistant') return new AIMessage(m.content);
+  const lcMessages = messages.map((m) => {
+    if (m.role === "user") return new HumanMessage(m.content);
+    if (m.role === "assistant") return new AIMessage(m.content);
     return new SystemMessage(m.content);
   });
 
   if (mode === "translator") {
     // Ensure system prompt is first if not already
-    if (lcMessages.length === 0 || lcMessages[0]._getType() !== 'system') {
-      lcMessages.unshift(new SystemMessage(TRANSLATOR_SYSTEM_PROMPT));
+    if (lcMessages.length === 0 || lcMessages[0]._getType() !== "system") {
+      const promptToUse = enableThinking
+        ? TRANSLATOR_SYSTEM_PROMPT_THINKING
+        : TRANSLATOR_SYSTEM_PROMPT;
+      lcMessages.unshift(new SystemMessage(promptToUse));
     }
   }
 
@@ -87,39 +98,52 @@ import { getFsTools } from "../tools/index.js";
 export async function* streamLangChainAgent(
   messages: { role: string; content: string }[],
   modelName: string,
-  enableThinking: boolean
+  enableThinking: boolean,
 ): AsyncGenerator<string, void, unknown> {
   const llm = getLangChainModel(modelName, enableThinking);
   const tools = await getFsTools();
-  
+
   const agent = createReactAgent({
     llm,
     tools,
   });
 
-  const lcMessages = messages.map(m => {
-    if (m.role === 'user') return new HumanMessage(m.content);
-    if (m.role === 'assistant') return new AIMessage(m.content);
+  const lcMessages = messages.map((m) => {
+    if (m.role === "user") return new HumanMessage(m.content);
+    if (m.role === "assistant") return new AIMessage(m.content);
     return new SystemMessage(m.content);
   });
 
   const eventStream = await agent.streamEvents(
     { messages: lcMessages },
-    { version: "v2" }
+    { version: "v2" },
   );
 
   for await (const event of eventStream) {
     if (event.event === "on_chat_model_stream") {
-      const chunk = event.data?.chunk?.content;
-      if (chunk && typeof chunk === "string") {
-        yield chunk;
+      const chunk = event.data?.chunk;
+      if (!chunk) continue;
+
+      // Content bisa berupa string langsung
+      if (typeof chunk.content === "string" && chunk.content) {
+        yield chunk.content;
+      }
+      // Content bisa berupa array of blocks (misal: [{ type: "text", text: "..." }])
+      else if (Array.isArray(chunk.content)) {
+        for (const block of chunk.content) {
+          if (block.type === "text" && block.text) {
+            yield block.text;
+          }
+        }
+      }
+      // Beberapa model mengirim text langsung di chunk.text
+      else if (typeof chunk.text === "string" && chunk.text) {
+        yield chunk.text;
       }
     } else if (event.event === "on_tool_start") {
       yield `\n\n> 🤖 **Mengeksekusi tool:** \`${event.name}\`...\n\n`;
     } else if (event.event === "on_tool_end") {
-      // Tidak perlu yield hasil tool secara penuh jika terlalu panjang, cukup notifikasi
       yield `\n\n> ✅ **Tool selesai**\n\n`;
     }
   }
 }
-
