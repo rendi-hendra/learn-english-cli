@@ -197,6 +197,7 @@ learn-english-cli/
 │   │   ├── useChatMode.ts      # Hook: streaming percakapan chat dengan riwayat
 │   │   └── useTranslatorMode.ts # Hook: streaming terjemahan tanpa riwayat
 │   ├── services/               # Lapisan layanan utama untuk integrasi AI dan MCP
+│   │   ├── agentRouter.ts      # Penentu rute Agen AI eksplisit (command/chat/error)
 │   │   ├── langchain.ts        # Barrel export + fungsi streaming (chat, agent, router)
 │   │   ├── messageBuilder.ts   # MessageBuilder: konstruksi pesan terpusat dengan PROMPT_MAP
 │   │   ├── modelManager.ts     # ModelManager: singleton cache instance ChatOpenAI
@@ -206,11 +207,13 @@ learn-english-cli/
 │   ├── tools/
 │   │   └── index.ts            # MCP Client berbasis @langchain/mcp-adapters penyedia alat otomatis
 │   ├── types/
-│   │   └── chat.ts             # Definisi tipe TypeScript untuk state dan status chat
+│   │   ├── chat.ts             # Definisi tipe TypeScript untuk state dan status chat
+│   │   └── modes.ts            # Tipe TypeScript ModeHandler dan TranslatorModeConfig
 │   ├── utils/                  # Utilitas fungsional kecil (Helper)
-│   │   ├── commandExecutor.ts  # Eksekutor perintah filesystem dengan sanitasi path
+│   │   ├── commandExecutor.ts  # Eksekutor perintah filesystem dengan sanitasi path & batas ukuran file
 │   │   ├── envConfig.ts        # Pengelola dan validasi file .env
 │   │   ├── errors.ts           # Defisini AppError dan ErrorCode yang type-safe
+│   │   ├── logger.ts           # Logger terstruktur menulis log ke logs/app.log
 │   │   ├── markdown.ts         # Parser Markdown kustom dan pengait ke Glow CLI
 │   │   ├── modelConfig.ts      # Cache penyimpan referensi model AI terakhir yang digunakan
 │   │   └── validation.ts       # InputValidator: validasi input, rate limiting, sanitasi path
