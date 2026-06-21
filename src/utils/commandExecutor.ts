@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { InputValidator } from './validation.js';
 
 export interface CommandResult {
   output: string;
@@ -17,7 +18,8 @@ export function executeCommandLocally(trimmedCmd: string): CommandResult | null 
         return { output: 'Penggunaan: /read <path_file>', success: false };
       }
       try {
-        const filePath = path.resolve(process.cwd(), args.trim());
+        const sanitized = InputValidator.sanitizePath(args);
+        const filePath = path.resolve(process.cwd(), sanitized);
         const content = fs.readFileSync(filePath, 'utf8');
         const ext = path.extname(filePath).slice(1).toLowerCase() || 'text';
         const isMarkdown = ['md', 'markdown', 'mdx'].includes(ext);
@@ -28,7 +30,7 @@ export function executeCommandLocally(trimmedCmd: string): CommandResult | null 
         }
 
         return { 
-          output: `Membaca file: ${args.trim()}\n\n${outputContent}`, 
+          output: `Membaca file: ${sanitized}\n\n${outputContent}`, 
           success: true
         };
       } catch (err: any) {
@@ -43,7 +45,8 @@ export function executeCommandLocally(trimmedCmd: string): CommandResult | null 
       const filePath = parts[1];
       const content = parts.slice(2).join(' ');
       try {
-        const fullPath = path.resolve(process.cwd(), filePath);
+        const sanitized = InputValidator.sanitizePath(filePath);
+        const fullPath = path.resolve(process.cwd(), sanitized);
         const dirPath = path.dirname(fullPath);
         if (!fs.existsSync(dirPath)) {
           fs.mkdirSync(dirPath, { recursive: true });
@@ -58,11 +61,12 @@ export function executeCommandLocally(trimmedCmd: string): CommandResult | null 
     case '/ls': {
       const dirPath = args || '.';
       try {
-        const fullPath = path.resolve(process.cwd(), dirPath);
+        const sanitized = InputValidator.sanitizePath(dirPath);
+        const fullPath = path.resolve(process.cwd(), sanitized);
         const items = fs.readdirSync(fullPath);
         const stat = fs.statSync(fullPath);
         if (!stat.isDirectory()) {
-          return { output: `"${dirPath}" bukan sebuah direktori.`, success: false };
+          return { output: `"${sanitized}" bukan sebuah direktori.`, success: false };
         }
         
         const itemList = items.map(item => {
@@ -71,7 +75,7 @@ export function executeCommandLocally(trimmedCmd: string): CommandResult | null 
           return `${itemStat.isDirectory() ? '📁' : '📄'} ${item}`;
         }).join('\n');
         
-        return { output: `Isi direktori "${dirPath}":\n${itemList}`, success: true };
+        return { output: `Isi direktori "${sanitized}":\n${itemList}`, success: true };
       } catch (err: any) {
         return { output: `Gagal membaca direktori: ${err.message}`, success: false };
       }

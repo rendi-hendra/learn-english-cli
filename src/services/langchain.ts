@@ -1,65 +1,34 @@
-import { ChatOpenAI } from "@langchain/openai";
 import { StringOutputParser } from "@langchain/core/output_parsers";
-import { loadEnv } from "../utils/envConfig.js";
-import {
-  TRANSLATOR_SYSTEM_PROMPT,
-  TRANSLATOR_SYSTEM_PROMPT_THINKING,
-  ROUTER_SYSTEM_PROMPT,
-} from "../config/prompts.js";
-import {
-  HumanMessage,
-  AIMessage,
-  SystemMessage,
-} from "@langchain/core/messages";
+import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { getFsTools } from "../tools/index.js";
+import { getLangChainModel } from "./modelManager.js";
+import { MessageBuilder } from "./messageBuilder.js";
 
-loadEnv();
+// Re-export for backward compatibility
+export { getLangChainModel } from "./modelManager.js";
+export { MessageBuilder, type MessageBuilderConfig } from "./messageBuilder.js";
 
-export function getLangChainModel(modelName: string, enableThinking: boolean) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (
-    !apiKey ||
-    apiKey.trim() === "" ||
-    apiKey === "your_openai_api_key_here"
-  ) {
-    throw new Error("OPENAI_API_KEY_MISSING");
-  }
-
-  const baseURL = process.env.OPENAI_BASE_URL || undefined;
-
-  const modelKwargs: any = {};
-  if (enableThinking) {
-    modelKwargs.enable_thinking = true;
-    modelKwargs.think = true;
-    modelKwargs.thinking = { enabled: true };
-  } else {
-    modelKwargs.enable_thinking = false;
-    modelKwargs.think = false;
-    modelKwargs.thinking = { enabled: false };
-  }
-
-  return new ChatOpenAI({
-    openAIApiKey: apiKey,
-    configuration: {
-      baseURL,
-    },
-    modelName: modelName,
-    streaming: false,
-    modelKwargs,
-  });
-}
-
+/**
+ * Routes a user message to determine if it maps to a local command.
+ * Uses a non-thinking LLM call with the ROUTER_SYSTEM_PROMPT.
+ */
 export async function routeUserCommand(
   userMessage: string,
   modelName: string,
 ): Promise<string> {
-  const llm = getLangChainModel(modelName, false); // No need for thinking mode for simple routing
-  const response = await llm.invoke([
-    new SystemMessage(ROUTER_SYSTEM_PROMPT),
-    new HumanMessage(userMessage),
-  ]);
+  const llm = getLangChainModel(modelName, false);
+  const lcMessages = MessageBuilder.build({
+    mode: "router",
+    enableThinking: false,
+    messages: [{ role: "user", content: userMessage }],
+  });
+  const response = await llm.invoke(lcMessages);
   return typeof response.content === "string" ? response.content.trim() : "";
 }
 
+/**
+ * Streams a chat/translator response from the LLM.
+ */
 export async function* streamLangChainChat(
   messages: { role: string; content: string }[],
   modelName: string,
@@ -69,21 +38,11 @@ export async function* streamLangChainChat(
   const llm = getLangChainModel(modelName, enableThinking);
   const parser = new StringOutputParser();
 
-  const lcMessages = messages.map((m) => {
-    if (m.role === "user") return new HumanMessage(m.content);
-    if (m.role === "assistant") return new AIMessage(m.content);
-    return new SystemMessage(m.content);
+  const lcMessages = MessageBuilder.build({
+    mode,
+    enableThinking,
+    messages,
   });
-
-  if (mode === "translator") {
-    // Ensure system prompt is first if not already
-    if (lcMessages.length === 0 || lcMessages[0]._getType() !== "system") {
-      const promptToUse = enableThinking
-        ? TRANSLATOR_SYSTEM_PROMPT_THINKING
-        : TRANSLATOR_SYSTEM_PROMPT;
-      lcMessages.unshift(new SystemMessage(promptToUse));
-    }
-  }
 
   const stream = await llm.pipe(parser).stream(lcMessages);
 
@@ -92,9 +51,9 @@ export async function* streamLangChainChat(
   }
 }
 
-import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import { getFsTools } from "../tools/index.js";
-
+/**
+ * Streams an agent response using LangGraph's ReAct agent with filesystem tools.
+ */
 export async function* streamLangChainAgent(
   messages: { role: string; content: string }[],
   modelName: string,
@@ -103,15 +62,12 @@ export async function* streamLangChainAgent(
   const llm = getLangChainModel(modelName, enableThinking);
   const tools = await getFsTools();
 
-  const agent = createReactAgent({
-    llm,
-    tools,
-  });
+  const agent = createReactAgent({ llm, tools });
 
-  const lcMessages = messages.map((m) => {
-    if (m.role === "user") return new HumanMessage(m.content);
-    if (m.role === "assistant") return new AIMessage(m.content);
-    return new SystemMessage(m.content);
+  const lcMessages = MessageBuilder.build({
+    mode: "agent",
+    enableThinking,
+    messages,
   });
 
   const eventStream = await agent.streamEvents(

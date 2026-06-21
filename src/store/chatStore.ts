@@ -7,6 +7,24 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
+// Shallow equality helper for selector optimization
+function shallowEqual(a: any, b: any): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || a === null || typeof b !== "object" || b === null) return false;
+  
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  
+  if (keysA.length !== keysB.length) return false;
+  
+  for (const key of keysA) {
+    if (!Object.prototype.hasOwnProperty.call(b, key) || !Object.is(a[key], b[key])) {
+      return false;
+    }
+  }
+  return true;
+}
+
 class ChatStore {
   private state: ChatState = {
     currentConversation: null,
@@ -20,6 +38,12 @@ class ChatStore {
   };
 
   private listeners = new Set<() => void>();
+
+  // Cached computation values
+  private cachedStateForTokens: ChatState | null = null;
+  private cachedTotalTokens = 0;
+  private cachedStateForCount: ChatState | null = null;
+  private cachedMessageCount = 0;
 
   getState(): ChatState {
     return this.state;
@@ -39,20 +63,26 @@ class ChatStore {
   }
 
   startConversation(userText: string) {
+    const updatedHistory = [...this.state.apiHistory];
     if (this.state.currentConversation) {
-      // Save previous conversation to history
+      // Save previous conversation to history using immutable patterns
       if (this.state.currentConversation.user) {
-        this.state.apiHistory.push({
+        updatedHistory.push({
           role: "user",
           content: this.state.currentConversation.user,
         });
       }
       if (this.state.currentConversation.assistant) {
-        this.state.apiHistory.push({ role: "assistant", content: this.state.currentConversation.assistant });
+        updatedHistory.push({
+          role: "assistant",
+          content: this.state.currentConversation.assistant,
+        });
       }
     }
+
     this.state = {
       ...this.state,
+      apiHistory: updatedHistory,
       currentConversation: { user: userText, assistant: "" },
     };
     this.emit();
@@ -87,7 +117,11 @@ class ChatStore {
   }
 
   addApiHistory(role: "user" | "assistant" | "system", content: string) {
-    this.state.apiHistory.push({ role, content });
+    this.state = {
+      ...this.state,
+      apiHistory: [...this.state.apiHistory, { role, content }],
+    };
+    this.emit();
   }
 
   setStatus(status: ChatStatus) {
@@ -132,12 +166,20 @@ class ChatStore {
   }
 
   getMessageCount(): number {
-    return (
-      this.state.apiHistory.length + (this.state.currentConversation ? 2 : 0)
-    );
+    if (this.cachedStateForCount === this.state) {
+      return this.cachedMessageCount;
+    }
+    this.cachedMessageCount =
+      this.state.apiHistory.length + (this.state.currentConversation ? 2 : 0);
+    this.cachedStateForCount = this.state;
+    return this.cachedMessageCount;
   }
 
   getTotalTokens(): number {
+    if (this.cachedStateForTokens === this.state) {
+      return this.cachedTotalTokens;
+    }
+
     const historyTokens = this.state.apiHistory.reduce(
       (total, msg) => total + estimateTokens(msg.content),
       0,
@@ -146,20 +188,40 @@ class ChatStore {
       ? estimateTokens(this.state.currentConversation.user) +
         estimateTokens(this.state.currentConversation.assistant)
       : 0;
-    return historyTokens + currentTokens;
+
+    this.cachedTotalTokens = historyTokens + currentTokens;
+    this.cachedStateForTokens = this.state;
+    return this.cachedTotalTokens;
   }
 }
 
 export const chatStore = new ChatStore();
 
-export function useChatStore() {
-  const [state, setState] = useState(chatStore.getState());
+// Selector functions for fine-grained updates
+export const selectCurrentConversation = (state: ChatState) => state.currentConversation;
+export const selectApiHistory = (state: ChatState) => state.apiHistory;
+export const selectStatus = (state: ChatState) => state.status;
+export const selectActiveModel = (state: ChatState) => state.activeModel;
+export const selectError = (state: ChatState) => state.error;
+export const selectConnectionStatus = (state: ChatState) => state.connectionStatus;
+export const selectEnableThinking = (state: ChatState) => state.enableThinking;
+export const selectAppMode = (state: ChatState) => state.appMode;
+
+export function useChatStore<T = ChatState>(selector?: (state: ChatState) => T) {
+  const select = selector || ((s: ChatState) => s as any as T);
+  const [selectedState, setSelectedState] = useState(() => select(chatStore.getState()));
 
   useEffect(() => {
     return chatStore.subscribe(() => {
-      setState(chatStore.getState());
+      const nextSelected = select(chatStore.getState());
+      setSelectedState((prev) => {
+        if (shallowEqual(prev, nextSelected)) {
+          return prev;
+        }
+        return nextSelected;
+      });
     });
-  }, []);
+  }, [select]);
 
   const startConversation = useCallback(
     (userText: string) => chatStore.startConversation(userText),
@@ -206,8 +268,13 @@ export function useChatStore() {
   );
   const clearChat = useCallback(() => chatStore.clearChat(), []);
 
+  // Return the selected state alongside stable action callbacks
+  const resultState = typeof selectedState === "object" && selectedState !== null
+    ? { ...selectedState }
+    : selectedState;
+
   return {
-    ...state,
+    ...(typeof resultState === "object" ? resultState : { value: resultState }),
     messageCount: chatStore.getMessageCount(),
     totalTokens: chatStore.getTotalTokens(),
     startConversation,
@@ -221,5 +288,5 @@ export function useChatStore() {
     setEnableThinking,
     setAppMode,
     clearChat,
-  };
+  } as any;
 }
