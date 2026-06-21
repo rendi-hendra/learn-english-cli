@@ -5,47 +5,146 @@ import {
   TRANSLATOR_SYSTEM_PROMPT,
   TRANSLATOR_SYSTEM_PROMPT_THINKING,
   ROUTER_SYSTEM_PROMPT,
+  AGENT_SYSTEM_PROMPT,
 } from "../config/prompts.js";
 import {
   HumanMessage,
   AIMessage,
   SystemMessage,
+  BaseMessage,
 } from "@langchain/core/messages";
+
+export interface MessageBuilderConfig {
+  mode: "translator" | "chat" | "agent" | "router";
+  enableThinking: boolean;
+  messages: { role: string; content: string }[];
+}
+
+export class MessageBuilder {
+  static build(config: MessageBuilderConfig): BaseMessage[] {
+    const lcMessages: BaseMessage[] = [];
+
+    // 1. Determine System Prompt based on mode
+    let systemPrompt: string | null = null;
+    if (config.mode === "translator") {
+      systemPrompt = config.enableThinking
+        ? TRANSLATOR_SYSTEM_PROMPT_THINKING
+        : TRANSLATOR_SYSTEM_PROMPT;
+    } else if (config.mode === "router") {
+      systemPrompt = ROUTER_SYSTEM_PROMPT;
+    } else if (config.mode === "agent") {
+      systemPrompt = AGENT_SYSTEM_PROMPT;
+    }
+
+    // Inject System Prompt if it exists
+    if (systemPrompt) {
+      lcMessages.push(new SystemMessage(systemPrompt));
+    }
+
+    // 2. Inject User/Assistant/System messages
+    for (const msg of config.messages) {
+      if (!msg.content) continue;
+      
+      // Prevent duplicating system prompts if history somehow contains one
+      if (msg.role === "system") {
+        lcMessages.push(new SystemMessage(msg.content));
+      } else if (msg.role === "assistant") {
+        lcMessages.push(new AIMessage(msg.content));
+      } else {
+        lcMessages.push(new HumanMessage(msg.content));
+      }
+    }
+
+    // 3. Validation
+    if (lcMessages.length === 0) {
+      throw new Error("MessageBuilder: No messages provided to build.");
+    }
+
+    return lcMessages;
+  }
+}
 
 loadEnv();
 
-export function getLangChainModel(modelName: string, enableThinking: boolean) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (
-    !apiKey ||
-    apiKey.trim() === "" ||
-    apiKey === "your_openai_api_key_here"
-  ) {
-    throw new Error("OPENAI_API_KEY_MISSING");
+class ModelManager {
+  private static instance: ModelManager;
+  private cache: Map<string, ChatOpenAI>;
+
+  private constructor() {
+    this.cache = new Map();
   }
 
-  const baseURL = process.env.OPENAI_BASE_URL || undefined;
-
-  const modelKwargs: any = {};
-  if (enableThinking) {
-    modelKwargs.enable_thinking = true;
-    modelKwargs.think = true;
-    modelKwargs.thinking = { enabled: true };
-  } else {
-    modelKwargs.enable_thinking = false;
-    modelKwargs.think = false;
-    modelKwargs.thinking = { enabled: false };
+  public static getInstance(): ModelManager {
+    if (!ModelManager.instance) {
+      ModelManager.instance = new ModelManager();
+    }
+    return ModelManager.instance;
   }
 
-  return new ChatOpenAI({
-    openAIApiKey: apiKey,
-    configuration: {
-      baseURL,
-    },
-    modelName: modelName,
-    streaming: false,
-    modelKwargs,
-  });
+  public getModel(modelName: string, enableThinking: boolean): ChatOpenAI {
+    // Validate input parameters
+    if (!modelName || typeof modelName !== "string" || modelName.trim() === "") {
+      throw new Error("INVALID_MODEL_NAME: Model name must be a valid string.");
+    }
+
+    const cacheKey = `${modelName}_${enableThinking}`;
+
+    // Return cached instance if available
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey)!;
+    }
+
+    // Validate environment variables
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (
+      !apiKey ||
+      apiKey.trim() === "" ||
+      apiKey === "your_openai_api_key_here"
+    ) {
+      throw new Error("OPENAI_API_KEY_MISSING");
+    }
+
+    const baseURL = process.env.OPENAI_BASE_URL || undefined;
+
+    const modelKwargs: Record<string, any> = {};
+    if (enableThinking) {
+      modelKwargs.enable_thinking = true;
+      modelKwargs.think = true;
+      modelKwargs.thinking = { enabled: true };
+    } else {
+      modelKwargs.enable_thinking = false;
+      modelKwargs.think = false;
+      modelKwargs.thinking = { enabled: false };
+    }
+
+    try {
+      const model = new ChatOpenAI({
+        openAIApiKey: apiKey,
+        configuration: {
+          baseURL,
+        },
+        modelName: modelName,
+        streaming: false,
+        modelKwargs,
+      });
+
+      // Cache the initialized model
+      this.cache.set(cacheKey, model);
+      return model;
+    } catch (error: any) {
+      // Error boundary for model creation failures
+      throw new Error(`MODEL_INITIALIZATION_FAILED: ${error.message}`);
+    }
+  }
+
+  public clearCache(): void {
+    this.cache.clear();
+  }
+}
+
+// Preserve existing API signature for backward compatibility
+export function getLangChainModel(modelName: string, enableThinking: boolean): ChatOpenAI {
+  return ModelManager.getInstance().getModel(modelName, enableThinking);
 }
 
 export async function routeUserCommand(
@@ -53,10 +152,12 @@ export async function routeUserCommand(
   modelName: string,
 ): Promise<string> {
   const llm = getLangChainModel(modelName, false); // No need for thinking mode for simple routing
-  const response = await llm.invoke([
-    new SystemMessage(ROUTER_SYSTEM_PROMPT),
-    new HumanMessage(userMessage),
-  ]);
+  const lcMessages = MessageBuilder.build({
+    mode: "router",
+    enableThinking: false,
+    messages: [{ role: "user", content: userMessage }],
+  });
+  const response = await llm.invoke(lcMessages);
   return typeof response.content === "string" ? response.content.trim() : "";
 }
 
@@ -69,21 +170,11 @@ export async function* streamLangChainChat(
   const llm = getLangChainModel(modelName, enableThinking);
   const parser = new StringOutputParser();
 
-  const lcMessages = messages.map((m) => {
-    if (m.role === "user") return new HumanMessage(m.content);
-    if (m.role === "assistant") return new AIMessage(m.content);
-    return new SystemMessage(m.content);
+  const lcMessages = MessageBuilder.build({
+    mode,
+    enableThinking,
+    messages,
   });
-
-  if (mode === "translator") {
-    // Ensure system prompt is first if not already
-    if (lcMessages.length === 0 || lcMessages[0]._getType() !== "system") {
-      const promptToUse = enableThinking
-        ? TRANSLATOR_SYSTEM_PROMPT_THINKING
-        : TRANSLATOR_SYSTEM_PROMPT;
-      lcMessages.unshift(new SystemMessage(promptToUse));
-    }
-  }
 
   const stream = await llm.pipe(parser).stream(lcMessages);
 
@@ -108,10 +199,10 @@ export async function* streamLangChainAgent(
     tools,
   });
 
-  const lcMessages = messages.map((m) => {
-    if (m.role === "user") return new HumanMessage(m.content);
-    if (m.role === "assistant") return new AIMessage(m.content);
-    return new SystemMessage(m.content);
+  const lcMessages = MessageBuilder.build({
+    mode: "agent",
+    enableThinking,
+    messages,
   });
 
   const eventStream = await agent.streamEvents(
