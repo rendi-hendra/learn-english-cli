@@ -48,6 +48,13 @@ Untuk menjamin tampilan yang luar biasa tanpa memperlambat aplikasi:
 *   **Stabilitas Eksekusi**: Migrasi dari pemanggilan API model secara langsung (seperti streaming Gemma) ke ekosistem **LangChain/LangGraph** dilakukan untuk memecahkan masalah stabilitas sebelumnya (termasuk kendala *Internal Server Error* saat streaming). Ekosistem ini mengelola *state* dan memori komputasi secara jauh lebih tangguh dan persisten.
 *   **Orkestrasi Agen Terstruktur**: LangGraph memungkinkan pembuatan graf eksekusi yang jelas untuk Agent mode. Setiap *node* dapat mengatur *tools* (seperti Filesystem MCP) secara terprediksi, memudahkan *debugging*, *structured logging*, dan penanganan kesalahan yang lebih baik.
 
+### 8. 🏗️ Arsitektur Modular & Code Quality
+*   **Pemisahan Komponen per Mode**: Setiap mode aplikasi (Translator, Chat, Agent) memiliki komponen React dan custom hook tersendiri, mengurangi kompleksitas `App.tsx` dari ~300 baris menjadi ~107 baris.
+*   **MessageBuilder Terpusat**: Seluruh konstruksi *system prompt* dan *message array* dilakukan melalui satu kelas `MessageBuilder` dengan pola `PROMPT_MAP` lookup, menjamin konsistensi injeksi prompt di semua mode.
+*   **ModelManager Singleton**: Inisialisasi model LLM (`ChatOpenAI`) di-*cache* berdasarkan *tuple* `(modelName, enableThinking)` untuk menghilangkan inisialisasi redundan.
+*   **Input Validation Layer**: Kelas `InputValidator` menyediakan validasi panjang input (maks. 2000 karakter), rate limiting (cooldown 1 detik), whitelist perintah/model, dan sanitasi jalur file untuk mencegah *directory traversal*.
+*   **Store Optimization**: State management menggunakan pola imutabilitas penuh, *selector functions* untuk pembaruan granular, `shallowEqual` untuk menghindari render ulang yang tidak perlu, dan memoization pada komputasi token/pesan.
+
 ---
 
 ## 🛠️ Teknologi yang Digunakan
@@ -167,29 +174,46 @@ learn-english-cli/
 ├── doc/                        # Dokumentasi arsitektur dan tutorial
 │   ├── 9router.md              # Panduan setup & konfigurasi 9Router dan Alibaba Cloud
 │   ├── langchain.md            # Dokumentasi arsitektur LangChain & LangGraph
-│   └── mcp.md                  # Dokumentasi Model Context Protocol (MCP)
+│   ├── mcp.md                  # Dokumentasi Model Context Protocol (MCP)
+│   └── workflow.png            # Diagram alur kerja program
 ├── src/
 │   ├── components/             # Komponen antarmuka Terminal (berbasis React/Ink)
-│   │   ├── App.tsx             # Komponen utama pengikat input, perintah, & perutean AI
+│   │   ├── AgentMode.tsx       # Komponen UI & handler khusus mode Agent
+│   │   ├── ChatMode.tsx        # Komponen UI & handler khusus mode Chat
 │   │   ├── ChatView.tsx        # Tampilan riwayat percakapan AI & pengguna
+│   │   ├── Header.tsx          # Header informasi model, mode, dan koneksi
 │   │   ├── InputBar.tsx        # Input teks dinamis dengan navigasi presisi & histori kursor
+│   │   ├── Message.tsx         # Komponen rendering pesan tunggal
 │   │   ├── ModeSelector.tsx    # Menu UI interaktif untuk berganti mode (Translator/Chat/Agent)
 │   │   ├── ModelSelector.tsx   # Menu UI interaktif untuk berganti Model LLM
-│   │   └── StatusBar.tsx       # Indikator status (Thinking/Generating), dan kalkulasi token
+│   │   ├── StatusBar.tsx       # Indikator status (Thinking/Generating), dan kalkulasi token
+│   │   └── TranslatorMode.tsx  # Komponen UI & handler khusus mode Translator
 │   ├── config/
-│   │   └── prompts.ts          # Variabel konstanta sistem dan Prompt bawaan (Translator/Router)
+│   │   └── prompts.ts          # Konstanta sistem prompt (Translator/Router/Agent)
+│   ├── context/
+│   │   └── ChatContext.tsx     # React Context untuk mengurangi prop drilling antar komponen
+│   ├── hooks/                  # Custom hooks untuk logika spesifik per mode
+│   │   ├── useAgentMode.ts     # Hook: routing & streaming agen dengan fallback ke chat
+│   │   ├── useChatMode.ts      # Hook: streaming percakapan chat dengan riwayat
+│   │   └── useTranslatorMode.ts # Hook: streaming terjemahan tanpa riwayat
 │   ├── services/               # Lapisan layanan utama untuk integrasi AI dan MCP
-│   │   ├── langchain.ts        # Orkestrasi streaming LangChain dan Agen terstruktur via LangGraph
+│   │   ├── langchain.ts        # Barrel export + fungsi streaming (chat, agent, router)
+│   │   ├── messageBuilder.ts   # MessageBuilder: konstruksi pesan terpusat dengan PROMPT_MAP
+│   │   ├── modelManager.ts     # ModelManager: singleton cache instance ChatOpenAI
 │   │   └── simpleMcpServer.ts  # Server MCP asli berspesifikasi JSON-RPC untuk File System lokal
 │   ├── store/
-│   │   └── chatStore.ts        # State management (Global/Flux-like) untuk data obrolan dan UI
+│   │   └── chatStore.ts        # State management dengan selector, memoization, & shallowEqual
 │   ├── tools/
 │   │   └── index.ts            # MCP Client berbasis @langchain/mcp-adapters penyedia alat otomatis
+│   ├── types/
+│   │   └── chat.ts             # Definisi tipe TypeScript untuk state dan status chat
 │   ├── utils/                  # Utilitas fungsional kecil (Helper)
-│   │   ├── commandExecutor.ts  # Eksekutor perintah filesystem manual untuk mode Chat/Translator
+│   │   ├── commandExecutor.ts  # Eksekutor perintah filesystem dengan sanitasi path
+│   │   ├── envConfig.ts        # Pengelola dan validasi file .env
 │   │   ├── markdown.ts         # Parser Markdown kustom dan pengait ke Glow CLI
 │   │   ├── modelConfig.ts      # Cache penyimpan referensi model AI terakhir yang digunakan
-│   │   └── envConfig.ts        # Pengelola dan validasi file .env
+│   │   └── validation.ts       # InputValidator: validasi input, rate limiting, sanitasi path
+│   ├── App.tsx                 # Komponen root: inisialisasi, pemilihan model/mode, delegasi render
 │   ├── index.tsx               # Titik masuk eksekusi utama aplikasi React/Ink
 │   └── mcp-server.ts           # Skrip entry point terpisah untuk menjalankan MCP Server lokal
 ├── .env.example                # Templat kredensial dan konfigurasi dasar API
