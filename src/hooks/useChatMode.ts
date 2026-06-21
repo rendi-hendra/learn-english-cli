@@ -1,6 +1,7 @@
 import { useChatStore } from "../store/chatStore.js";
 import { streamLangChainChat } from "../services/langchain.js";
 import { renderMarkdownWithGlow } from "../utils/markdown.js";
+import { AppError } from "../utils/errors.js";
 
 export function useChatMode() {
   const {
@@ -47,11 +48,7 @@ export function useChatMode() {
       setStatus("complete");
     } catch (err: any) {
       setStatus("error");
-      if (
-        err.message.includes("internet") ||
-        err.message.includes("koneksi") ||
-        err.message.includes("putus")
-      ) {
+      if (AppError.isNetworkError(err)) {
         setConnectionStatus("disconnected");
       }
       const errMsg = err.message || "Terjadi kesalahan sistem.";

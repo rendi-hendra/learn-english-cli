@@ -2,6 +2,7 @@ import { useChatStore } from "../store/chatStore.js";
 import { streamLangChainChat, routeUserCommand } from "../services/langchain.js";
 import { executeCommandLocally } from "../utils/commandExecutor.js";
 import { renderMarkdownWithGlow } from "../utils/markdown.js";
+import { AppError } from "../utils/errors.js";
 
 export function useAgentMode() {
   const {
@@ -65,11 +66,7 @@ export function useAgentMode() {
       setStatus("complete");
     } catch (err: any) {
       setStatus("error");
-      if (
-        err.message.includes("internet") ||
-        err.message.includes("koneksi") ||
-        err.message.includes("putus")
-      ) {
+      if (AppError.isNetworkError(err)) {
         setConnectionStatus("disconnected");
       }
       const errMsg = err.message || "Terjadi kesalahan sistem.";
