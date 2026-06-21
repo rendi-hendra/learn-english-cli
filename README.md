@@ -44,6 +44,10 @@ Untuk menjamin tampilan yang luar biasa tanpa memperlambat aplikasi:
 *   **Perintah Filesystem**: Dalam mode agen, AI dapat membaca file, menulis file, dan menjelajahi direktori menggunakan perintah `/read`, `/write`, `/ls`, dan `/pwd`.
 *   **Filesystem MCP Server**: Aplikasi menyertakan implementasi sederhana dari Filesystem MCP Server yang memungkinkan AI untuk berinteraksi dengan file sistem secara aman dan terkontrol.
 
+### 7. 🔗 Arsitektur LangChain & LangGraph
+*   **Stabilitas Eksekusi**: Migrasi dari pemanggilan API model secara langsung (seperti streaming Gemma) ke ekosistem **LangChain/LangGraph** dilakukan untuk memecahkan masalah stabilitas sebelumnya (termasuk kendala *Internal Server Error* saat streaming). Ekosistem ini mengelola *state* dan memori komputasi secara jauh lebih tangguh dan persisten.
+*   **Orkestrasi Agen Terstruktur**: LangGraph memungkinkan pembuatan graf eksekusi yang jelas untuk Agent mode. Setiap *node* dapat mengatur *tools* (seperti Filesystem MCP) secara terprediksi, memudahkan *debugging*, *structured logging*, dan penanganan kesalahan yang lebih baik.
+
 ---
 
 ## 📦 Prasyarat & Instalasi
@@ -126,6 +130,15 @@ npm run mcp-server -- /path/to/allowed/directory
 | **`Panah Atas / Bawah`** | Menjelajahi riwayat prompt (Command History). |
 | **`Panah Kiri / Kanan`** | Memindahkan kursor input teks ke kiri dan ke kanan. |
 | **`Backspace / Delete`** | Menghapus karakter di posisi kursor. |
+
+---
+
+## 📚 Dokumentasi Tambahan
+
+Untuk penjelasan yang lebih mendalam mengenai arsitektur, integrasi, dan cara kerja komponen yang digunakan dalam proyek AI CLI ini, silakan baca dokumentasi berikut:
+*   [Arsitektur MCP (Model Context Protocol)](doc/mcp.md)
+*   [Arsitektur LangChain & LangGraph](doc/langchain.md)
+*   [Tutorial Integrasi 9Router & Alibaba Cloud Model Studio](doc/9router.md)
 
 ---
 
