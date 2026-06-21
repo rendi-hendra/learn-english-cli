@@ -1,58 +1,28 @@
-import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 export class SimpleFilesystemMcpServer {
   private allowedRoot: string;
-  private rl: readline.Interface;
+  private server: Server;
 
   constructor(allowedRoot: string = process.cwd()) {
     this.allowedRoot = path.resolve(allowedRoot);
-    this.rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      terminal: false
-    });
-  }
-
-  start() {
-    console.log('Simple Filesystem MCP Server started');
-    console.log(`Allowed root: ${this.allowedRoot}`);
-    
-    this.rl.on('line', (line: string) => {
-      try {
-        const request = JSON.parse(line);
-        this.handleRequest(request);
-      } catch (error) {
-        this.sendError('Invalid JSON', null);
+    this.server = new Server(
+      {
+        name: "filesystem-server",
+        version: "0.1.0",
+      },
+      {
+        capabilities: {
+          tools: {},
+        },
       }
-    });
-  }
-
-  handleRequest(request: any) {
-    const { method, params, id } = request;
-
-    try {
-      switch (method) {
-        case 'read_file':
-          this.readFile(params.path, id);
-          break;
-        case 'write_file':
-          this.writeFile(params.path, params.content, id);
-          break;
-        case 'list_directory':
-          this.listDirectory(params.path, id);
-          break;
-        case 'get_file_info':
-          this.getFileInfo(params.path, id);
-          break;
-        default:
-          this.sendError(`Method not found: ${method}`, id);
-      }
-    } catch (error: any) {
-      this.sendError(error.message, id);
-    }
+    );
+    this.setupHandlers();
   }
 
   resolvePath(inputPath: string): string {
@@ -64,69 +34,137 @@ export class SimpleFilesystemMcpServer {
     return resolvedPath;
   }
 
-  readFile(filePath: string, id: string) {
-    const fullPath = this.resolvePath(filePath);
-    const content = fs.readFileSync(fullPath, 'utf8');
-    this.sendResult({ content: [{ type: 'text', text: content }] }, id);
-  }
+  private setupHandlers() {
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      return {
+        tools: [
+          {
+            name: "read_file",
+            description: "Reads the content of a file from the local file system. Use this to inspect code, markdown, or any text file.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                filePath: { type: "string", description: "The relative or absolute path to the file to read" },
+              },
+              required: ["filePath"],
+            },
+          },
+          {
+            name: "write_file",
+            description: "Writes content to a file in the local file system. It will create directories if they don't exist.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                filePath: { type: "string", description: "The relative or absolute path to the file to write" },
+                content: { type: "string", description: "The content to write into the file" },
+              },
+              required: ["filePath", "content"],
+            },
+          },
+          {
+            name: "list_directory",
+            description: "Lists the contents of a directory in the local file system.",
+            inputSchema: {
+              type: "object",
+              properties: {
+                dirPath: { type: "string", description: "The relative or absolute path to the directory to list. Defaults to '.'" },
+              },
+            },
+          },
+          {
+            name: "get_current_directory",
+            description: "Gets the current working directory.",
+            inputSchema: {
+              type: "object",
+              properties: {},
+            },
+          }
+        ],
+      };
+    });
 
-  writeFile(filePath: string, content: string, id: string) {
-    const fullPath = this.resolvePath(filePath);
-    const dirPath = path.dirname(fullPath);
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-    }
-    fs.writeFileSync(fullPath, content, 'utf8');
-    this.sendResult({ result: 'File written successfully' }, id);
-  }
-
-  listDirectory(dirPath: string, id: string) {
-    const fullPath = this.resolvePath(dirPath);
-    const entries = fs.readdirSync(fullPath, { withFileTypes: true });
-    
-    const items = entries.map(entry => ({
-      name: entry.name,
-      type: entry.isDirectory() ? 'directory' : 'file'
-    }));
-    
-    this.sendResult({ items }, id);
-  }
-
-  getFileInfo(itemPath: string, id: string) {
-    const fullPath = this.resolvePath(itemPath);
-    const stats = fs.statSync(fullPath);
-    
-    const info = {
-      name: path.basename(fullPath),
-      path: fullPath,
-      size: stats.size,
-      isDirectory: stats.isDirectory(),
-      createdAt: stats.birthtime.toISOString(),
-      modifiedAt: stats.mtime.toISOString()
-    };
-    
-    this.sendResult(info, id);
-  }
-
-  sendResult(result: any, id: string) {
-    const response = {
-      jsonrpc: '2.0',
-      id,
-      result
-    };
-    console.log(JSON.stringify(response));
-  }
-
-  sendError(message: string, id: string | null) {
-    const response = {
-      jsonrpc: '2.0',
-      id,
-      error: {
-        code: -32000,
-        message
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      try {
+        switch (request.params.name) {
+          case "read_file": {
+            const { filePath } = request.params.arguments as { filePath: string };
+            const fullPath = this.resolvePath(filePath.trim());
+            const content = fs.readFileSync(fullPath, 'utf8');
+            const ext = path.extname(fullPath).slice(1).toLowerCase() || 'text';
+            const isMarkdown = ['md', 'markdown', 'mdx'].includes(ext);
+            let outputContent = content;
+            if (!isMarkdown) {
+              outputContent = `\`\`\`${ext}\n${content}\n\`\`\``;
+            }
+            return {
+              content: [
+                { type: "text", text: `Membaca file: ${filePath.trim()}\n\n${outputContent}` }
+              ],
+            };
+          }
+          case "write_file": {
+            const { filePath, content } = request.params.arguments as { filePath: string, content: string };
+            const fullPath = this.resolvePath(filePath.trim());
+            const dirPath = path.dirname(fullPath);
+            if (!fs.existsSync(dirPath)) {
+              fs.mkdirSync(dirPath, { recursive: true });
+            }
+            fs.writeFileSync(fullPath, content, 'utf8');
+            return {
+              content: [
+                { type: "text", text: `File berhasil ditulis: ${fullPath}` }
+              ],
+            };
+          }
+          case "list_directory": {
+            const args = request.params.arguments as { dirPath?: string };
+            const targetPath = args.dirPath || '.';
+            const fullPath = this.resolvePath(targetPath);
+            const stat = fs.statSync(fullPath);
+            if (!stat.isDirectory()) {
+              throw new Error(`"${targetPath}" bukan sebuah direktori.`);
+            }
+            const items = fs.readdirSync(fullPath);
+            const itemList = items.map(item => {
+              const itemPath = path.join(fullPath, item);
+              let isDir = false;
+              try {
+                isDir = fs.statSync(itemPath).isDirectory();
+              } catch (_e) {}
+              return `${isDir ? '📁' : '📄'} ${item}`;
+            }).join('\n');
+            return {
+              content: [
+                { type: "text", text: `Isi direktori "${targetPath}":\n${itemList}` }
+              ],
+            };
+          }
+          case "get_current_directory": {
+            return {
+              content: [
+                { type: "text", text: `Direktori kerja saat ini: ${process.cwd()}` }
+              ],
+            };
+          }
+          default:
+            throw new Error(`Unknown tool: ${request.params.name}`);
+        }
+      } catch (error: any) {
+        return {
+          isError: true,
+          content: [
+            { type: "text", text: `Error: ${error.message}` }
+          ],
+        };
       }
-    };
-    console.log(JSON.stringify(response));
+    });
+  }
+
+  async start() {
+    console.error('Filesystem MCP Server (LangChain format) started');
+    console.error(`Allowed root: ${this.allowedRoot}`);
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
   }
 }
 
@@ -135,7 +173,10 @@ const modulePath = fileURLToPath(import.meta.url);
 if (nodePath === modulePath) {
   const allowedRoot = process.argv[2] || process.cwd();
   const server = new SimpleFilesystemMcpServer(allowedRoot);
-  server.start();
+  server.start().catch((err) => {
+    console.error("Fatal error starting server:", err);
+    process.exit(1);
+  });
 }
 
 export default SimpleFilesystemMcpServer;
