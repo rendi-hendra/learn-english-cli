@@ -11,6 +11,7 @@ import { ModelSelector } from "./components/ModelSelector.js";
 import { ModeSelector } from "./components/ModeSelector.js";
 import { saveLastModel } from "./utils/modelConfig.js";
 import { executeCommandLocally } from "./utils/commandExecutor.js";
+import { InputValidator } from "./utils/validation.js";
 
 interface AppProps {
   initialModel?: string;
@@ -72,6 +73,24 @@ export const App: React.FC<AppProps> = ({
     const trimmed = value.trim();
     if (!trimmed) return;
 
+    // Validate and sanitize user input
+    const allowedCommands = ["/exit", "/clear", "/help", "/mode", "/model", "/read", "/write", "/ls", "/pwd"];
+    const allowedModels = ["qwen3.7-max", "gpt-4o", "gpt-3.5-turbo", "gpt-4o-mini", "o1-mini", "o1-preview", "gemini-2.5-flash", "gemma-2b-it", "gpt-4", "claude-3-5-sonnet", "claude-3-opus", "gemini-1.5-flash", "gemini-1.5-pro"];
+
+    const validation = InputValidator.validateUserInput(trimmed, {
+      maxInputLength: 2000, // Maximum character limit
+      allowedCommands,
+      allowedModels,
+    });
+
+    if (!validation.isValid) {
+      startConversation(trimmed);
+      updateSystemMessage(`[Validation Error] ${validation.error}`);
+      return;
+    }
+
+    const sanitized = validation.sanitizedInput || trimmed;
+
     // Do NOT clear terminal using process.stdout.write('\x1b[2J\x1b[H') 
     // because it breaks Ink's single-screen control.
 
@@ -118,6 +137,12 @@ export const App: React.FC<AppProps> = ({
           return;
         case "/model":
           if (args) {
+            const allowedModels = ["qwen3.7-max", "gpt-4o", "gpt-3.5-turbo", "gpt-4o-mini", "o1-mini", "o1-preview", "gemini-2.5-flash", "gemma-2b-it", "gpt-4", "claude-3-5-sonnet", "claude-3-opus", "gemini-1.5-flash", "gemini-1.5-pro"];
+            if (!InputValidator.validateModel(args, allowedModels)) {
+              startConversation(`/model ${args}`);
+              updateSystemMessage(`[Validation Error] Model "${args}" tidak diizinkan atau tidak dikenal.`);
+              return;
+            }
             setActiveModel(args);
             saveLastModel(args);
             startConversation(`/model ${args}`);
@@ -129,9 +154,9 @@ export const App: React.FC<AppProps> = ({
       }
 
       // File system commands
-      const cmdResult = executeCommandLocally(trimmed);
+      const cmdResult = executeCommandLocally(sanitized);
       if (cmdResult) {
-        startConversation(trimmed);
+        startConversation(sanitized);
         const outputMsg = command === "/read" 
           ? `File berhasil dimuat ke dalam memori sesi.\n\n${cmdResult.output}`
           : cmdResult.output;
@@ -140,7 +165,7 @@ export const App: React.FC<AppProps> = ({
         return;
       }
 
-      startConversation(trimmed);
+      startConversation(sanitized);
       updateSystemMessage(
         `Perintah tidak dikenal: ${command}. Ketik /help untuk melihat bantuan.`,
       );
@@ -148,17 +173,17 @@ export const App: React.FC<AppProps> = ({
     }
 
     // Process as a prompt for the model
-    startConversation(trimmed);
+    startConversation(sanitized);
     setStatus("thinking");
     setError(null);
 
     // Prompts have been imported from src/config/prompts.ts
 
     let currentApiMessages = appMode === "translator"
-      ? [{ role: "user" as const, content: trimmed }]
+      ? [{ role: "user" as const, content: sanitized }]
       : [
           ...apiHistory.map((m) => ({ role: m.role as any, content: m.content })),
-          { role: "user" as const, content: trimmed },
+          { role: "user" as const, content: sanitized },
         ];
 
     try {
@@ -166,7 +191,7 @@ export const App: React.FC<AppProps> = ({
 
       if (appMode === "agent") {
         updateAssistantMessage("Menganalisis permintaan...");
-        const routeResult = await routeUserCommand(trimmed, activeModel);
+        const routeResult = await routeUserCommand(sanitized, activeModel);
         
         if (routeResult.startsWith("/")) {
           const cmdResult = executeCommandLocally(routeResult);
