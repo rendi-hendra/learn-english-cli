@@ -7,6 +7,7 @@ export function useTranslatorMode() {
   const {
     activeModel,
     enableThinking,
+    appMode,
     updateAssistantMessage,
     setStatus,
     setError,
@@ -21,11 +22,13 @@ export function useTranslatorMode() {
 
     try {
       let fullResponse = "";
+      // Ensure appMode is one of the supported modes for streamLangChainChat
+      const mode = (appMode === "translator-clipboard" ? "translator-clipboard" : "translator");
       const generator = streamLangChainChat(
         currentApiMessages,
         activeModel,
         enableThinking,
-        "translator"
+        mode
       );
 
       for await (const chunk of generator) {
