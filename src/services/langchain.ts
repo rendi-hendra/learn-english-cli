@@ -33,7 +33,7 @@ export async function* streamLangChainChat(
   messages: { role: string; content: string }[],
   modelName: string,
   enableThinking: boolean,
-  mode: "translator" | "chat",
+  mode: "translator" | "translator-clipboard" | "chat",
 ): AsyncGenerator<string, void, unknown> {
   const llm = getLangChainModel(modelName, enableThinking);
   const parser = new StringOutputParser();

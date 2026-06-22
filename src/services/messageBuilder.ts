@@ -1,6 +1,7 @@
 import {
   TRANSLATOR_SYSTEM_PROMPT,
   TRANSLATOR_SYSTEM_PROMPT_THINKING,
+  TRANSLATOR_SYSTEM_PROMPT_CLIPBOARD,
   ROUTER_SYSTEM_PROMPT,
   AGENT_SYSTEM_PROMPT,
 } from "../config/prompts.js";
@@ -12,7 +13,7 @@ import {
 } from "@langchain/core/messages";
 
 export interface MessageBuilderConfig {
-  mode: "translator" | "chat" | "agent" | "router";
+  mode: "translator" | "translator-clipboard" | "chat" | "agent" | "router";
   enableThinking: boolean;
   messages: { role: string; content: string }[];
 }
@@ -25,6 +26,7 @@ export class MessageBuilder {
   private static readonly PROMPT_MAP: Record<string, string | ((thinking: boolean) => string)> = {
     translator: (thinking: boolean) =>
       thinking ? TRANSLATOR_SYSTEM_PROMPT_THINKING : TRANSLATOR_SYSTEM_PROMPT,
+    "translator-clipboard": TRANSLATOR_SYSTEM_PROMPT_CLIPBOARD,
     router: ROUTER_SYSTEM_PROMPT,
     agent: AGENT_SYSTEM_PROMPT,
   };
