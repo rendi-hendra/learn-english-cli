@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 
-export type AppMode = 'translator' | 'chat' | 'agent';
+export type AppMode = 'translator' | 'translator-clipboard' | 'chat' | 'agent';
 
 interface ModeSelectorProps {
   onSelect: (mode: AppMode) => void;
@@ -10,6 +10,7 @@ interface ModeSelectorProps {
 
 const MODES: { id: AppMode; label: string; desc: string }[] = [
   { id: 'translator', label: 'Translator', desc: 'Penerjemah ketat (tanpa obrolan basa-basi)' },
+  { id: 'translator-clipboard', label: 'Translator (Clipboard)', desc: 'Penerjemah otomatis (pantauan clipboard real-time)' },
   { id: 'chat', label: 'Chat', desc: 'Asisten AI standar (mirip ChatGPT)' },
   { id: 'agent', label: 'Agent', desc: 'Agen otonom dengan akses ke tool system (eksperimental)' },
 ];

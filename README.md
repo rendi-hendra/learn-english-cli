@@ -9,6 +9,7 @@ AI CLI Terminal adalah aplikasi TUI (Terminal User Interface) modern, interaktif
 ### 1. 🔄 Penerjemah Bahasa Otomatis (Indonesia ↔ Inggris)
 Secara default, CLI diprogram sebagai asisten penerjemah dwi-arah yang sangat efisien:
 *   **Deteksi Bahasa Otomatis**: Mendeteksi bahasa masukan secara otomatis dan menerjemahkannya ke bahasa tujuan (Indonesia ke Inggris, Inggris ke Indonesia).
+*   **Pantauan Clipboard Real-time**: Dengan menyematkan flag `-clip` atau lewat menu `/mode`, Anda bisa mengaktifkan "Translator (Clipboard)". Mode ini akan memantau *clipboard* OS Anda dan **secara otomatis menerjemahkan setiap teks baru yang Anda salin (copy)** ke clipboard tanpa harus mengetik atau mem-paste secara manual.
 *   **Penyelarasan Ekspresi Native**: AI akan memilih frasa dan terjemahan paling natural yang biasa digunakan oleh penutur asli (*native speaker*).
 *   **Output Format Ketat**: AI patuh tanpa basa-basi untuk langsung mengeluarkan output dalam format struktural. 
     *   Pada **Mode Normal**, AI menghasilkan 3 baris: `Direct`, `Natural`, dan `Formal`.
@@ -111,6 +112,14 @@ Aplikasi ini dibina di atas ekosistem JavaScript/TypeScript modern dengan mengin
     ```bash
     npm run dev -- -t
     ```
+*   **Mengaktifkan Mode Translator (Clipboard) sejak awal**:
+    ```bash
+    npm run dev -- -clip
+    ```
+    *atau (jika menggunakan versi build kompilasi langsung):*
+    ```bash
+    english-cli -clip
+    ```
 *   **Mengganti Model Default secara Manual**:
     ```bash
     npm run dev -- -m gpt-4o
@@ -144,7 +153,7 @@ npm run mcp-server -- /path/to/allowed/directory
 | **`/write [path] [content]`** | Menulis konten ke file (contoh: `/write notes.txt Hello World`). |
 | **`/ls [path]`** | Menampilkan daftar isi direktori (contoh: `/ls src`). |
 | **`/pwd`** | Menampilkan direktori kerja saat ini. |
-| **`/mode`** | Menampilkan menu interaktif untuk beralih antara 3 mode: **Translator**, **Chat**, atau **Agent**. |
+| **`/mode`** | Menampilkan menu interaktif untuk beralih antara 4 mode: **Translator**, **Translator (Clipboard)**, **Chat**, atau **Agent**. |
 | **`/model`** | Menampilkan menu antarmuka interaktif untuk memilih model AI. |
 | **`/model [nama]`** | Mengubah model AI aktif secara langsung tanpa menu interaktif. |
 | **`/exit`** | Keluar dari aplikasi. |
@@ -195,6 +204,7 @@ learn-english-cli/
 │   ├── hooks/                  # Custom hooks untuk logika spesifik per mode
 │   │   ├── useAgentMode.ts     # Hook: routing & streaming agen dengan fallback ke chat
 │   │   ├── useChatMode.ts      # Hook: streaming percakapan chat dengan riwayat
+│   │   ├── useClipboardWatcher.ts # Hook: pemantau clipboard OS secara real-time asinkron
 │   │   └── useTranslatorMode.ts # Hook: streaming terjemahan tanpa riwayat
 │   ├── services/               # Lapisan layanan utama untuk integrasi AI dan MCP
 │   │   ├── agentRouter.ts      # Penentu rute Agen AI eksplisit (command/chat/error)

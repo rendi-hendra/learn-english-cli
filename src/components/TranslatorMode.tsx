@@ -8,15 +8,18 @@ import { useChatStore } from "../store/chatStore.js";
 import { useTranslatorMode } from "../hooks/useTranslatorMode.js";
 import { useCommonCommands } from "../hooks/useCommonCommands.js";
 import { InputValidator } from "../utils/validation.js";
+import { useClipboardWatcher } from "../hooks/useClipboardWatcher.js";
 
 interface TranslatorModeProps {
   onExitModeSelection: () => void;
   onExitModelSelection: () => void;
+  enableClipboard?: boolean;
 }
 
 export const TranslatorMode: React.FC<TranslatorModeProps> = ({
   onExitModeSelection,
   onExitModelSelection,
+  enableClipboard = false,
 }) => {
   const {
     currentConversation,
@@ -26,6 +29,7 @@ export const TranslatorMode: React.FC<TranslatorModeProps> = ({
     messageCount,
     totalTokens,
     enableThinking,
+    appMode,
     startConversation,
     updateSystemMessage,
     clearChat,
@@ -36,6 +40,14 @@ export const TranslatorMode: React.FC<TranslatorModeProps> = ({
     onExitModeSelection,
     onExitModelSelection
   );
+
+  useClipboardWatcher({
+    enabled: enableClipboard,
+    onClipboardChange: async (text) => {
+      startConversation(text);
+      await handleTranslate(text);
+    },
+  });
 
   const handleSubmit = async (value: string) => {
     const trimmed = value.trim();
@@ -77,7 +89,7 @@ export const TranslatorMode: React.FC<TranslatorModeProps> = ({
         messageCount={messageCount}
         connectionStatus={connectionStatus}
         status={status}
-        appMode="translator"
+        appMode={appMode}
       />
 
       <Box flexDirection="column">
