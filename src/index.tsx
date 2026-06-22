@@ -19,9 +19,13 @@ program
   .version("1.0.0")
   .option("-m, --model <model>", "OpenAI model to use", getLastModel())
   .option("-t, --thinking", "Enable thinking/reasoning mode", false)
+  .option("--clipboard", "Enable real-time clipboard monitoring for translator mode", false)
+  .option("-clip", "Alias for --clipboard", false)
   .parse(process.argv);
 
 const options = program.opts();
+const rawArgs = process.argv.slice(2);
+const enableClipboard = !!options.clipboard || rawArgs.includes('-clip') || rawArgs.includes('--clipboard');
 
 // Clear the screen on startup for a clean look
 process.stdout.write("\x1b[2J\x1b[H");
@@ -33,7 +37,11 @@ process.on("SIGINT", () => {
 });
 // Render React Ink application
 const { waitUntilExit } = render(
-  <App initialModel={options.model} enableThinking={!!options.thinking} />,
+  <App 
+    initialModel={options.model} 
+    enableThinking={!!options.thinking} 
+    enableClipboard={enableClipboard}
+  />,
 );
 
 waitUntilExit()

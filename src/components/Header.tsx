@@ -7,7 +7,7 @@ interface HeaderProps {
   messageCount: number;
   connectionStatus: ConnectionStatus;
   status: string;
-  appMode: 'translator' | 'chat' | 'agent';
+  appMode: 'translator' | 'translator-clipboard' | 'chat' | 'agent';
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -38,7 +38,9 @@ export const Header: React.FC<HeaderProps> = ({
       </Box>
       <Box>
         <Text bold>Mode:       </Text>
-        <Text color={appMode === 'translator' ? "magenta" : appMode === 'chat' ? "blue" : "yellow"}>{appMode.toUpperCase()}</Text>
+        <Text color={appMode.startsWith('translator') ? "magenta" : appMode === 'chat' ? "blue" : "yellow"}>
+          {appMode === 'translator-clipboard' ? 'TRANSLATOR (clipboard)' : appMode === 'translator' ? 'TRANSLATOR' : appMode.toUpperCase()}
+        </Text>
       </Box>
       <Box>
         <Text bold>Model:      </Text>

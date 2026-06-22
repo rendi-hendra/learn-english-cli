@@ -149,7 +149,7 @@ class ChatStore {
     this.emit();
   }
 
-  setAppMode(appMode: "translator" | "chat" | "agent") {
+  setAppMode(appMode: "translator" | "translator-clipboard" | "chat" | "agent") {
     this.state = { ...this.state, appMode };
     this.emit();
   }
@@ -263,7 +263,7 @@ export function useChatStore<T = ChatState>(selector?: (state: ChatState) => T) 
     [],
   );
   const setAppMode = useCallback(
-    (mode: "translator" | "chat" | "agent") => chatStore.setAppMode(mode),
+    (mode: "translator" | "translator-clipboard" | "chat" | "agent") => chatStore.setAppMode(mode),
     [],
   );
   const clearChat = useCallback(() => chatStore.clearChat(), []);

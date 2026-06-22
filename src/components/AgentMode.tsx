@@ -6,6 +6,7 @@ import { StatusBar } from "./StatusBar.js";
 import { InputBar } from "./InputBar.js";
 import { useChatStore } from "../store/chatStore.js";
 import { useAgentMode } from "../hooks/useAgentMode.js";
+import { useCommonCommands } from "../hooks/useCommonCommands.js";
 import { executeCommandLocally } from "../utils/commandExecutor.js";
 import { renderMarkdownWithGlow } from "../utils/markdown.js";
 import { InputValidator } from "../utils/validation.js";
@@ -33,6 +34,10 @@ export const AgentMode: React.FC<AgentModeProps> = ({
   } = useChatStore();
 
   const { handleAgent } = useAgentMode();
+  const { handleCommonCommand } = useCommonCommands(
+    onExitModeSelection,
+    onExitModelSelection
+  );
 
   const handleSubmit = async (value: string) => {
     const trimmed = value.trim();
@@ -55,34 +60,13 @@ export const AgentMode: React.FC<AgentModeProps> = ({
 
     const sanitized = validation.sanitizedInput || trimmed;
 
+    if (handleCommonCommand(sanitized)) {
+      return;
+    }
+
     if (sanitized.startsWith("/")) {
       const parts = sanitized.split(" ");
       const command = parts[0];
-
-      if (command === "/exit") {
-        process.exit(0);
-      }
-      if (command === "/clear") {
-        clearChat();
-        startConversation("/clear");
-        updateSystemMessage("Riwayat obrolan telah dibersihkan.");
-        return;
-      }
-      if (command === "/help") {
-        startConversation("/help");
-        updateSystemMessage(
-          `Bantuan AI CLI:\n• /help                 - Menampilkan pesan bantuan ini\n• /clear                - Menghapus riwayat obrolan\n• /read [path_file]     - Membaca isi file lokal ke dalam konteks obrolan\n• /write [path_file] [content] - Menulis konten ke file\n• /ls [path_dir]        - Menampilkan daftar isi direktori\n• /pwd                  - Menampilkan direktori kerja saat ini\n• /mode                 - Menampilkan menu interaktif untuk beralih mode\n• /model                - Menampilkan menu interaktif untuk memilih model\n• /exit                 - Keluar dari aplikasi\n• Ctrl+L                - Membersihkan layar terminal\n• Ctrl+C                - Keluar dari aplikasi`
-        );
-        return;
-      }
-      if (command === "/mode") {
-        onExitModeSelection();
-        return;
-      }
-      if (command === "/model") {
-        onExitModelSelection();
-        return;
-      }
 
       // Check file system commands in Agent Mode (explicit user commands)
       const cmdResult = executeCommandLocally(sanitized);
