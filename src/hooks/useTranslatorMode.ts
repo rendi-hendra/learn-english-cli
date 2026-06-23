@@ -14,7 +14,7 @@ export function useTranslatorMode() {
     setConnectionStatus,
   } = useChatStore();
 
-  const handleTranslate = async (sanitizedInput: string) => {
+  const handleTranslate = async (sanitizedInput: string, isClipboard: boolean = false) => {
     setStatus("thinking");
     setError(null);
 
@@ -22,8 +22,7 @@ export function useTranslatorMode() {
 
     try {
       let fullResponse = "";
-      // Ensure appMode is one of the supported modes for streamLangChainChat
-      const mode = (appMode === "translator-clipboard" ? "translator-clipboard" : "translator");
+      const mode = isClipboard ? "translator-clipboard" : "translator";
       const generator = streamLangChainChat(
         currentApiMessages,
         activeModel,
