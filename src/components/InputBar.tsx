@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Box, Text, useInput } from 'ink';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import React, { useState, useRef, useEffect } from "react";
+import { Box, Text, useInput } from "ink";
+import fs from "fs";
+import path from "path";
+import os from "os";
 
 interface InputBarProps {
   onSubmit: (value: string) => void;
@@ -10,17 +10,27 @@ interface InputBarProps {
   status: string;
 }
 
-const HISTORY_FILE = path.join(os.homedir(), '.english_cli_history');
-const COMMANDS = ['/help', '/clear', '/read', '/write', '/ls', '/pwd', '/mode', '/model', '/exit'];
+const HISTORY_FILE = path.join(os.homedir(), ".english_cli_history");
+const COMMANDS = [
+  "/help",
+  "/clear",
+  "/read",
+  "/write",
+  "/ls",
+  "/pwd",
+  "/mode",
+  "/model",
+  "/exit",
+];
 
 function loadHistory(): string[] {
   try {
     if (fs.existsSync(HISTORY_FILE)) {
-      const content = fs.readFileSync(HISTORY_FILE, 'utf8');
+      const content = fs.readFileSync(HISTORY_FILE, "utf8");
       return content
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
     }
   } catch (err) {
     // Ignore read errors
@@ -30,24 +40,28 @@ function loadHistory(): string[] {
 
 function saveHistoryEntry(entry: string) {
   try {
-    fs.appendFileSync(HISTORY_FILE, entry + '\n', 'utf8');
+    fs.appendFileSync(HISTORY_FILE, entry + "\n", "utf8");
   } catch (err) {
     // Ignore write errors
   }
 }
 
-export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, status }) => {
-  const [value, setValue] = useState('');
+export const InputBar: React.FC<InputBarProps> = ({
+  onSubmit,
+  onClearScreen,
+  status,
+}) => {
+  const [value, setValue] = useState("");
   const [cursorIndex, setCursorIndex] = useState(0);
 
   // Use a mutable ref to track the latest state synchronously during useInput events.
   // This prevents stale closures when React batches state updates (e.g., during rapid typing or holding backspace).
-  const stateRef = useRef({ val: '', idx: 0 });
+  const stateRef = useRef({ val: "", idx: 0 });
 
   // History references
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef<number>(-1);
-  const draftRef = useRef<string>('');
+  const draftRef = useRef<string>("");
 
   // Load history on mount
   useEffect(() => {
@@ -62,12 +76,12 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
 
   useInput((input, key) => {
     // Ctrl+C to exit (Ink usually handles this, but explicit handling is safer)
-    if (key.ctrl && input === 'c') {
+    if (key.ctrl && input === "c") {
       process.exit(0);
     }
 
     // Ctrl+L to clear screen
-    if (key.ctrl && input === 'l') {
+    if (key.ctrl && input === "l") {
       onClearScreen();
       return;
     }
@@ -76,14 +90,15 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
     const currentCol = stateRef.current.idx;
 
     const getSuggestion = (val: string) => {
-      if (!val.startsWith('/') || val.length === 0 || val.includes(' ')) return '';
-      const match = COMMANDS.find(cmd => cmd.startsWith(val.toLowerCase()));
+      if (!val.startsWith("/") || val.length === 0 || val.includes(" "))
+        return "";
+      const match = COMMANDS.find((cmd) => cmd.startsWith(val.toLowerCase()));
       if (match && match !== val.toLowerCase()) {
         return match.slice(val.length);
       }
-      return '';
+      return "";
     };
-    
+
     const suggestion = getSuggestion(currentVal);
 
     // Tab to autocomplete
@@ -100,18 +115,18 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
       const trimmed = currentVal.trim();
       if (trimmed) {
         onSubmit(trimmed);
-        
+
         // Append to history
         const hist = historyRef.current;
         if (hist.length === 0 || hist[hist.length - 1] !== trimmed) {
           hist.push(trimmed);
           saveHistoryEntry(trimmed);
         }
-        
+
         // Reset history pointer and state
         historyIndexRef.current = -1;
-        draftRef.current = '';
-        updateState('', 0);
+        draftRef.current = "";
+        updateState("", 0);
       }
       return;
     }
@@ -130,7 +145,7 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
       const nextIndex = Math.min(hist.length - 1, currentIndex + 1);
       historyIndexRef.current = nextIndex;
 
-      const historicalVal = hist[hist.length - 1 - nextIndex] || '';
+      const historicalVal = hist[hist.length - 1 - nextIndex] || "";
       updateState(historicalVal, historicalVal.length);
       return;
     }
@@ -148,7 +163,7 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
         // Restore draft
         updateState(draftRef.current, draftRef.current.length);
       } else {
-        const historicalVal = hist[hist.length - 1 - nextIndex] || '';
+        const historicalVal = hist[hist.length - 1 - nextIndex] || "";
         updateState(historicalVal, historicalVal.length);
       }
       return;
@@ -176,78 +191,88 @@ export const InputBar: React.FC<InputBarProps> = ({ onSubmit, onClearScreen, sta
     if (
       key.backspace ||
       key.delete ||
-      input === '\b' ||
-      input === '\x7f' ||
-      input === '\u007f' ||
-      input === '\u0008'
+      input === "\b" ||
+      input === "\x7f" ||
+      input === "\u007f" ||
+      input === "\u0008"
     ) {
       if (currentCol > 0) {
-        const newVal = currentVal.slice(0, currentCol - 1) + currentVal.slice(currentCol);
+        const newVal =
+          currentVal.slice(0, currentCol - 1) + currentVal.slice(currentCol);
         updateState(newVal, currentCol - 1);
       }
       return;
     }
 
     // Ignore special navigation keys for simplicity
-    if (
-      key.escape ||
-      key.meta ||
-      key.ctrl
-    ) {
+    if (key.escape || key.meta || key.ctrl) {
       return;
     }
 
     // Append standard character input (only printable characters, ignore control codes)
-    const isControlChar = input && (input.charCodeAt(0) < 32 || input.charCodeAt(0) === 127);
+    const isControlChar =
+      input && (input.charCodeAt(0) < 32 || input.charCodeAt(0) === 127);
     if (input && !isControlChar) {
-      const newVal = currentVal.slice(0, currentCol) + input + currentVal.slice(currentCol);
+      const newVal =
+        currentVal.slice(0, currentCol) + input + currentVal.slice(currentCol);
       updateState(newVal, currentCol + input.length);
     }
   });
 
-  const isThinking = status === 'thinking' || status === 'calling_tool';
+  const isThinking = status === "thinking" || status === "calling_tool";
 
   const renderInputText = () => {
     const suggestion = (() => {
-      if (!value.startsWith('/') || value.length === 0 || value.includes(' ')) return '';
-      const match = COMMANDS.find(cmd => cmd.startsWith(value.toLowerCase()));
+      if (!value.startsWith("/") || value.length === 0 || value.includes(" "))
+        return "";
+      const match = COMMANDS.find((cmd) => cmd.startsWith(value.toLowerCase()));
       if (match && match !== value.toLowerCase()) {
         return match.slice(value.length);
       }
-      return '';
+      return "";
     })();
 
     if (cursorIndex === value.length) {
       return (
         <>
           <Text color="white">{value}</Text>
-          <Text color="cyan" dimColor>█</Text>
+          <Text color="cyan" dimColor>
+            █
+          </Text>
           {suggestion && <Text color="gray">{suggestion}</Text>}
         </>
       );
     }
 
     const before = value.slice(0, cursorIndex);
-    const cursorChar = value[cursorIndex] || ' ';
+    const cursorChar = value[cursorIndex] || " ";
     const after = value.slice(cursorIndex + 1);
 
     return (
       <>
         <Text color="white">{before}</Text>
-        <Text backgroundColor="white" color="black">{cursorChar}</Text>
+        <Text backgroundColor="white" color="black">
+          {cursorChar}
+        </Text>
         <Text color="white">{after}</Text>
       </>
     );
   };
 
   return (
-    <Box flexDirection="row" marginTop={0}>
-      <Text bold color="cyan">{'> '}</Text>
-      {isThinking ? (
-        <Text italic color="gray">Thinking...</Text>
-      ) : (
-        renderInputText()
-      )}
+    <Box flexDirection="row" marginTop={0} borderStyle="round">
+      <Box marginLeft={1}>
+        <Text bold color="cyan">
+          {"> "}
+        </Text>
+        {isThinking ? (
+          <Text italic color="gray">
+            Thinking...
+          </Text>
+        ) : (
+          renderInputText()
+        )}
+      </Box>
     </Box>
   );
 };

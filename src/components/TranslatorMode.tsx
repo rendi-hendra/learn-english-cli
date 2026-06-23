@@ -1,9 +1,5 @@
 import React from "react";
-import { Box } from "ink";
-import { Header } from "./Header.js";
-import { ChatView } from "./ChatView.js";
-import { StatusBar } from "./StatusBar.js";
-import { InputBar } from "./InputBar.js";
+import { BaseModeLayout } from "./BaseModeLayout.js";
 import { useChatStore } from "../store/chatStore.js";
 import { useTranslatorMode } from "../hooks/useTranslatorMode.js";
 import { useCommonCommands } from "../hooks/useCommonCommands.js";
@@ -13,26 +9,15 @@ import { useClipboardWatcher } from "../hooks/useClipboardWatcher.js";
 interface TranslatorModeProps {
   onExitModeSelection: () => void;
   onExitModelSelection: () => void;
-  enableClipboard?: boolean;
 }
 
 export const TranslatorMode: React.FC<TranslatorModeProps> = ({
   onExitModeSelection,
   onExitModelSelection,
-  enableClipboard = false,
 }) => {
   const {
-    currentConversation,
-    status,
-    activeModel,
-    connectionStatus,
-    messageCount,
-    totalTokens,
-    enableThinking,
-    appMode,
     startConversation,
     updateSystemMessage,
-    clearChat,
   } = useChatStore();
 
   const { handleTranslate } = useTranslatorMode();
@@ -42,10 +27,10 @@ export const TranslatorMode: React.FC<TranslatorModeProps> = ({
   );
 
   useClipboardWatcher({
-    enabled: enableClipboard,
+    enabled: true,
     onClipboardChange: async (text) => {
       startConversation(text);
-      await handleTranslate(text);
+      await handleTranslate(text, true);
     },
   });
 
@@ -75,38 +60,8 @@ export const TranslatorMode: React.FC<TranslatorModeProps> = ({
     }
 
     startConversation(sanitized);
-    await handleTranslate(sanitized);
+    await handleTranslate(sanitized, false);
   };
 
-  const handleClearScreen = () => {
-    clearChat();
-  };
-
-  return (
-    <Box flexDirection="column">
-      <Header
-        model={activeModel}
-        messageCount={messageCount}
-        connectionStatus={connectionStatus}
-        status={status}
-        appMode={appMode}
-      />
-
-      <Box flexDirection="column">
-        <ChatView currentConversation={currentConversation} />
-      </Box>
-
-      <StatusBar
-        status={status}
-        tokenCount={totalTokens}
-        enableThinking={enableThinking}
-      />
-
-      <InputBar
-        onSubmit={handleSubmit}
-        onClearScreen={handleClearScreen}
-        status={status}
-      />
-    </Box>
-  );
+  return <BaseModeLayout onSubmit={handleSubmit} />;
 };

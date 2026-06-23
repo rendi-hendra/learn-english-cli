@@ -10,13 +10,11 @@ import { AgentMode } from "./components/AgentMode.js";
 interface AppProps {
   initialModel?: string;
   enableThinking?: boolean;
-  enableClipboard?: boolean;
 }
 
 export const App: React.FC<AppProps> = ({
   initialModel,
   enableThinking = false,
-  enableClipboard = false,
 }) => {
   const {
     activeModel,
@@ -45,17 +43,7 @@ export const App: React.FC<AppProps> = ({
     setEnableThinking(enableThinking);
   }, [enableThinking, setEnableThinking]);
 
-  const initializedClipboardRef = useRef(false);
 
-  // Set initial mode to translator-clipboard if started with --clipboard flag
-  useEffect(() => {
-    if (!initializedClipboardRef.current) {
-      initializedClipboardRef.current = true;
-      if (enableClipboard && appMode === "translator") {
-        setAppMode("translator-clipboard");
-      }
-    }
-  }, [enableClipboard, appMode, setAppMode]);
 
   if (!modelSelected) {
     return (
@@ -92,15 +80,6 @@ export const App: React.FC<AppProps> = ({
         <TranslatorMode
           onExitModeSelection={() => setModeSelecting(true)}
           onExitModelSelection={() => setModelSelected(false)}
-          enableClipboard={false}
-        />
-      );
-    case "translator-clipboard":
-      return (
-        <TranslatorMode
-          onExitModeSelection={() => setModeSelecting(true)}
-          onExitModelSelection={() => setModelSelected(false)}
-          enableClipboard={true}
         />
       );
     case "chat":

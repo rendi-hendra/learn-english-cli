@@ -1,96 +1,92 @@
 # AI CLI Terminal & Translator
 
-AI CLI Terminal adalah aplikasi TUI (Terminal User Interface) modern, interaktif, dan berkinerja tinggi yang dibangun menggunakan **React**, **TypeScript**, **Ink**, dan **OpenAI API**. Aplikasi ini menawarkan pengalaman seperti Claude Code, Gemini CLI, atau OpenCode dengan fitur penerjemahan otomatis dwi-arah yang natural, riwayat perintah persisten, dan rendering Markdown premium menggunakan **Glow**.
+AI CLI Terminal adalah aplikasi TUI (Terminal User Interface) modern, interaktif, dan berkinerja tinggi yang dibangun menggunakan **React**, **TypeScript**, **Ink**, dan **OpenAI API**. Aplikasi ini menghadirkan pengalaman produktivitas terminal yang mulus (seperti Claude Code atau Gemini CLI) dengan fitur penerjemahan otomatis dwi-arah yang natural, riwayat perintah persisten, serta rendering Markdown premium menggunakan **Glow**.
 
 ---
 
 ## 🚀 Fitur Utama & Keunggulan
 
-### 1. 🔄 Penerjemah Bahasa Otomatis (Indonesia ↔ Inggris)
-Secara default, CLI diprogram sebagai asisten penerjemah dwi-arah yang sangat efisien:
-*   **Deteksi Bahasa Otomatis**: Mendeteksi bahasa masukan secara otomatis dan menerjemahkannya ke bahasa tujuan (Indonesia ke Inggris, Inggris ke Indonesia).
-*   **Pantauan Clipboard Real-time**: Dengan menyematkan flag `-clip` atau lewat menu `/mode`, Anda bisa mengaktifkan "Translator (Clipboard)". Mode ini akan memantau *clipboard* OS Anda dan **secara otomatis menerjemahkan setiap teks baru yang Anda salin (copy)** ke clipboard tanpa harus mengetik atau mem-paste secara manual.
-*   **Penyelarasan Ekspresi Native**: AI akan memilih frasa dan terjemahan paling natural yang biasa digunakan oleh penutur asli (*native speaker*).
-*   **Output Format Ketat**: AI patuh tanpa basa-basi untuk langsung mengeluarkan output dalam format struktural. 
-    *   Pada **Mode Normal**, AI menghasilkan 3 baris: `Direct`, `Natural`, dan `Formal`.
-    *   Pada **Thinking Mode Aktif**, AI menghasilkan 4 baris yang lebih presisi: `Direct`, `Natural`, `Slang` (bahasa gaul/informal), dan `Formal`.
+### 1. 🔄 Penerjemah Bahasa Otomatis Cerdas (Indonesia ↔ Inggris)
+CLI ini dirancang sebagai asisten penerjemah dwi-arah yang sangat efisien:
+*   **Deteksi Bahasa Otomatis**: AI mendeteksi bahasa masukan secara otomatis dan menerjemahkannya ke bahasa tujuan (Indonesia ke Inggris, Inggris ke Indonesia).
+*   **Pantauan Clipboard Real-time**: Dalam **Mode Translator**, aplikasi akan memantau *clipboard* OS Anda dan **secara otomatis menerjemahkan teks baru yang Anda salin (copy)** tanpa perlu mengetik atau melakukan *paste* secara manual.
+*   **Penyelarasan Ekspresi Native**: AI memilih kosakata dan struktur frasa yang paling sering digunakan oleh penutur asli (*native speaker*).
+*   **Adaptasi Output Cerdas**:
+    *   **Input Manual**: AI menyajikan 3 baris terjemahan terstruktur untuk membantu proses belajar Anda: `Direct` (literal), `Natural` (idiomatik/native), dan `Formal` (formal/sopan).
+    *   **Input Clipboard (Otomatis)**: AI secara cerdas hanya menampilkan 1 baris terjemahan `Natural` yang ringkas agar tampilan terminal tetap bersih dan efisien.
+    *   **Thinking Mode Aktif**: AI menyajikan analisis terjemahan yang lebih mendalam hingga 4 gaya bahasa presisi: `Direct`, `Natural`, `Slang` (informal), dan `Formal`.
 
 ### 2. 📝 Hybrid Rendering Markdown (Glow & Custom JS)
-Untuk menjamin tampilan yang luar biasa tanpa memperlambat aplikasi:
-*   **Real-time Streaming**: Selama teks mengalir dari API, aplikasi menggunakan parser kustom JS yang ringan untuk merender teks dan kode sumber secara instan tanpa lag.
-*   **Glow Polishing**: Begitu respons selesai dikirim secara penuh, aplikasi akan memanggil utility **Glow** (oleh Charmbracelet) di latar belakang untuk merapikan spasi, memformat list, dan menyajikan *syntax highlighting* berkualitas premium.
-*   **Pembersihan Tanda Markdown (`#`)**: Aplikasi secara otomatis menyaring dan menghapus tanda pagar (`#`, `##`, `###`) dari judul di terminal, tetapi tetap mempertahankan warna dan format tebal yang dihasilkan.
-*   **Graceful Degradation**: Jika `glow` tidak terpasang di sistem, aplikasi akan otomatis jatuh kembali (*fallback*) ke parser internal secara aman tanpa menyebabkan crash.
+Untuk menjamin tampilan estetis tanpa mengorbankan performa:
+*   **Real-time Streaming**: Saat respons mengalir dari API, parser kustom JS yang ringan akan langsung merender teks dan kode sumber tanpa *lag*.
+*   **Glow Polishing**: Begitu respons lengkap diterima, aplikasi akan memanggil pustaka **Glow** (oleh Charmbracelet) di latar belakang untuk merapikan spasi, memformat daftar (*list*), dan menyajikan *syntax highlighting* premium.
+*   **Pembersihan Tanda Markdown**: Karakter penanda judul Markdown (`#`, `##`, `###`) otomatis dibersihkan agar teks tetap nyaman dibaca di layar terminal, dengan tetap mempertahankan warna dan format tebal.
+*   **Graceful Degradation**: Jika `glow` tidak terpasang di sistem, aplikasi akan otomatis beralih ke parser internal secara aman tanpa menyebabkan crash.
 
 ### 3. ⌨️ Input Bar & Navigasi Kursor Tingkat Lanjut
-*   **Navigasi Kiri-Kanan**: Gunakan tombol **Panah Kiri** dan **Panah Kanan** untuk memindahkan kursor dan mengedit teks di tengah kalimat.
-*   **Hapus Teks Presisi**: Menekan **Backspace** atau **Delete** akan menghapus karakter tepat di posisi kursor saat ini. Masalah pemetaan kode keyboard Windows (`DEL` vs `BS`) telah disatukan secara internal demi kenyamanan pengguna.
-*   **Sinkronisasi Real-time**: Menggunakan referensi memori mutable (`useRef`) untuk melacak posisi kursor dan teks secara sinkron, menghindari bug *stale closure* akibat pengetikan cepat atau tombol Backspace yang ditahan.
+*   **Navigasi Presisi**: Gunakan tombol **Panah Kiri** dan **Panah Kanan** untuk memindahkan kursor dan mengedit teks di bagian mana pun pada kalimat.
+*   **Penanganan Backspace & Delete**: Mendukung penghapusan karakter secara akurat di posisi kursor saat ini pada OS Windows maupun UNIX.
+*   **Sinkronisasi Real-time**: Menggunakan referensi memori mutable (`useRef`) untuk melacak teks dan posisi kursor, menghindari bug *stale closure* saat mengetik cepat.
 
 ### 4. 📜 Riwayat Perintah Persisten (Command History)
-*   **Navigasi Panah Atas/Bawah**: Tekan **Panah Atas** untuk melihat perintah sebelumnya dan **Panah Bawah** untuk kembali ke perintah yang lebih baru.
-*   **Penyimpanan File Lokal**: Riwayat disimpan secara permanen di file `.ai_history` di folder proyek sehingga riwayat Anda tidak hilang walaupun terminal ditutup.
-*   **Penyelamatan Draf**: Jika Anda sedang mengetik lalu menekan Panah Atas untuk melihat riwayat, tulisan yang sedang Anda ketik tidak akan hilang dan akan dipulihkan jika Anda kembali ke bawah.
-*   **Anti-Duplikasi**: Perintah duplikat yang dikirim berturut-turut tidak akan disimpan berulang kali untuk menjaga kebersihan riwayat.
+*   **Navigasi Cepat**: Tekan **Panah Atas/Bawah** untuk menjelajahi daftar perintah sebelumnya.
+*   **Penyimpanan Lokal**: Riwayat disimpan secara permanen di file `.ai_history` dalam folder proyek.
+*   **Draft Preservation**: Tulisan yang sedang Anda ketik tidak akan hilang saat Anda mencari riwayat; draf tersebut akan dipulihkan secara otomatis ketika Anda kembali ke baris bawah.
+*   **Anti-Duplikasi**: Perintah identik yang dikirim berturut-turut tidak akan disimpan berulang kali guna menjaga kebersihan riwayat.
 
 ### 5. ⚙️ Mode Penalaran (Thinking Mode) Dinamis
-*   **Opsi Jalur Pintas CLI**: Menjalankan aplikasi dengan parameter `--thinking` atau `-t` akan mengaktifkan mode penalaran model AI (seperti `qwen3.7-max` atau seri model reasoning).
-*   **Informasi Status Detail**:
-    *   **Thinking Mode Aktif**: Spinner status akan berwarna **kuning** dengan label **`System Status: THINKING`** dan detail status **`Thinking: true`**.
-    *   **Thinking Mode Non-aktif**: Spinner status akan berwarna **biru** dengan label **`System Status: GENERATING`** dan detail status **`Thinking: false`**.
-*   **Injeksi Prompt Khusus**: Saat diaktifkan bersamaan dengan Mode Translator, sistem secara otomatis mengganti *system prompt* dengan versi khusus (*Thinking Prompt*) yang dioptimalkan untuk mengekstrak terjemahan bahasa hingga 4 gaya bahasa yang sangat presisi (termasuk *Slang*).
+*   **Aktivasi Instan**: Jalankan aplikasi dengan parameter `--thinking` atau `-t` untuk mengaktifkan mode penalaran model AI (optimal untuk model *reasoning* seperti `qwen3.7-max` atau seri o1).
+*   **Indikator Status UI**:
+    *   *Thinking Aktif*: Spinner berwarna **kuning** dengan label `System Status: THINKING`.
+    *   *Thinking Non-aktif*: Spinner berwarna **biru** dengan label `System Status: GENERATING`.
+*   **Injeksi Prompt Khusus**: Sistem secara otomatis mengalihkan *system prompt* ke versi penalaran untuk menghasilkan gaya bahasa yang lebih komprehensif (termasuk terjemahan *Slang*).
 
 ### 6. 🤖 Mode Agen dengan Akses Filesystem (Filesystem MCP Server)
-*   **Akses Filesystem**: Mode agen memungkinkan AI untuk berinteraksi dengan sistem file lokal melalui perintah-perintah khusus.
-*   **Perintah Filesystem**: Dalam mode agen, AI dapat membaca file, menulis file, dan menjelajahi direktori menggunakan perintah `/read`, `/write`, `/ls`, dan `/pwd`.
-*   **Filesystem MCP Server**: Aplikasi menyertakan implementasi sederhana dari Filesystem MCP Server yang memungkinkan AI untuk berinteraksi dengan file sistem secara aman dan terkontrol.
+*   **Eksplorasi Lokal**: Izinkan AI untuk membantu Anda berinteraksi dengan berkas lokal secara langsung.
+*   **Perintah Terintegrasi**: AI dapat membaca file, menulis file, dan menjelajahi direktori menggunakan perintah bawaan seperti `/read`, `/write`, `/ls`, dan `/pwd`.
+*   **Filesystem MCP Server**: Menyediakan implementasi protokol komunikasi JSON-RPC standar yang aman dan terkontrol untuk memanipulasi file.
 
 ### 7. 🔗 Arsitektur LangChain & LangGraph
-*   **Stabilitas Eksekusi**: Migrasi dari pemanggilan API model secara langsung (seperti streaming Gemma) ke ekosistem **LangChain/LangGraph** dilakukan untuk memecahkan masalah stabilitas sebelumnya (termasuk kendala *Internal Server Error* saat streaming). Ekosistem ini mengelola *state* dan memori komputasi secara jauh lebih tangguh dan persisten.
-*   **Orkestrasi Agen Terstruktur**: LangGraph memungkinkan pembuatan graf eksekusi yang jelas untuk Agent mode. Setiap *node* dapat mengatur *tools* (seperti Filesystem MCP) secara terprediksi, memudahkan *debugging*, *structured logging*, dan penanganan kesalahan yang lebih baik.
+*   **Manajemen Status Tangguh**: Migrasi ke ekosistem **LangChain/LangGraph** meningkatkan stabilitas *streaming* data dan mengeliminasi kendala *Internal Server Error* pada API.
+*   **Graf Eksekusi Agen**: Memungkinkan pengaturan alur kerja agen AI yang terstruktur, mempermudah pelacakan eksekusi *tool* serta penanganan kesalahan (*error handling*).
 
-### 8. 🏗️ Arsitektur Modular & Code Quality
-*   **Pemisahan Komponen per Mode**: Setiap mode aplikasi (Translator, Chat, Agent) memiliki komponen React dan custom hook tersendiri, mengurangi kompleksitas `App.tsx` dari ~300 baris menjadi ~107 baris.
-*   **MessageBuilder Terpusat**: Seluruh konstruksi *system prompt* dan *message array* dilakukan melalui satu kelas `MessageBuilder` dengan pola `PROMPT_MAP` lookup, menjamin konsistensi injeksi prompt di semua mode.
-*   **ModelManager Singleton**: Inisialisasi model LLM (`ChatOpenAI`) di-*cache* berdasarkan *tuple* `(modelName, enableThinking)` untuk menghilangkan inisialisasi redundan.
-*   **Input Validation Layer**: Kelas `InputValidator` menyediakan validasi panjang input (maks. 2000 karakter), rate limiting (cooldown 1 detik), whitelist perintah/model, dan sanitasi jalur file untuk mencegah *directory traversal*.
-*   **Store Optimization**: State management menggunakan pola imutabilitas penuh, *selector functions* untuk pembaruan granular, `shallowEqual` untuk menghindari render ulang yang tidak perlu, dan memoization pada komputasi token/pesan.
+### 8. 🏗️ Desain Kode Modular & Bersih
+*   **Pemisahan Tanggung Jawab**: Setiap mode aplikasi (Translator, Chat, Agent) dipisahkan menjadi komponen React tersendiri.
+*   **MessageBuilder & ModelManager**: Konstruksi prompt terpusat (`PROMPT_MAP`) dan inisialisasi model di-*cache* (Singleton) untuk performa optimal.
+*   **Lapisan Validasi Valid**: Membatasi panjang input (maks. 2000 karakter), menerapkan *rate limiting* (cooldown 1 detik), dan menyaring *path* file untuk menghindari celah keamanan *directory traversal*.
 
 ---
 
 ## 🛠️ Teknologi yang Digunakan
 
-Aplikasi ini dibina di atas ekosistem JavaScript/TypeScript modern dengan mengintegrasikan pustaka-pustaka terdepan di kelasnya:
+Aplikasi ini menggunakan teknologi JavaScript/TypeScript modern untuk antarmuka terminal terbaik:
 
-*   **[Ink](https://github.com/vadimdemedes/ink) & [React](https://react.dev/)**: Membangun UI terminal komersial yang dinamis layaknya aplikasi web (menggunakan *flexbox*, *hooks*, dan *state*).
-*   **[LangChain](https://js.langchain.com/) & [LangGraph](https://langchain-ai.github.io/langgraphjs/)**: Kerangka kerja utama untuk orkestrasi LLM (*Large Language Model*), eksekusi percakapan *streaming*, dan manajemen *state/graph* eksekusi agen yang tangguh.
-*   **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)**: Menggunakan `@modelcontextprotocol/sdk` dan `@langchain/mcp-adapters` sebagai standar interkoneksi agen AI ke kapabilitas lokal (sistem file).
-*   **[OpenAI SDK](https://github.com/openai/openai-node)**: Klien API standar untuk menangani *prompt* dan panggilan AI.
-*   **[Zod](https://zod.dev/)**: Validasi skema dan penulisan spesifikasi parameter *tool/function calling* agen dengan ketat.
-*   **[Commander](https://github.com/tj/commander.js)**: Parsing argumen CLI (Command-Line Interface) yang rapi saat aplikasi dipanggil di terminal.
-*   **[Chalk](https://github.com/chalk/chalk) & [Ora](https://github.com/sindresorhus/ora)**: Desain UX terminal yang kaya (warna kustom & *spinner* animasi).
-*   **[Marked](https://marked.js.org/) & [cli-highlight](https://github.com/felixge/node-cli-highlight)**: Mesin parser cadangan (*fallback*) untuk markdown jika CLI `glow` tidak terpasang.
-*   **[9Router](https://github.com/decolua/9router) *(Sangat Direkomendasikan)***: Aplikasi ini sangat dioptimalkan untuk dikonfigurasikan bersama 9Router sebagai *Smart Proxy/Gateway*. 9Router membantu memangkas penggunaan/biaya token melalui fitur *Response Token Caching* (RTK) dan mengatur rute *fallback* model ke penyedia pihak ketiga seperti Alibaba Cloud Model Studio.
+*   **[Ink](https://github.com/vadimdemedes/ink) & [React](https://react.dev/)**: Membangun UI terminal dinamis menggunakan komponen berbasis *state* dan *hooks*.
+*   **[LangChain](https://js.langchain.com/) & [LangGraph](https://langchain-ai.github.io/langgraphjs/)**: Framework utama untuk manajemen alur kerja LLM dan agen AI.
+*   **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)**: Mengintegrasikan agen AI dengan sistem lokal menggunakan standar terbuka dari Anthropic.
+*   **[Chalk](https://github.com/chalk/chalk) & [Ora](https://github.com/sindresorhus/ora)**: Mewarnai dan menganimasikan UI terminal agar tampak menarik dan responsif.
+*   **[Glow](https://github.com/charmbracelet/glow)**: Pustaka CLI dari Charmbracelet untuk rendering Markdown berkualitas tinggi dengan gaya *modern code viewer*.
+*   **[9Router](https://github.com/decolua/9router) *(Direkomendasikan)***: Digunakan sebagai *smart proxy gateway* untuk memotong biaya token lewat *Response Token Caching* (RTK) dan menyediakan *fallback routing* ke provider LLM.
 
 ---
 
 ## 📦 Prasyarat & Instalasi
 
 1.  Pastikan Anda telah menginstal **Node.js** (v18 ke atas) dan **npm**.
-2.  Install seluruh dependencies node:
+2.  Pasang dependensi proyek:
     ```bash
     npm install
     ```
-3.  **Instalasi Glow** (Opsional, sangat disarankan):
-    Aplikasi akan mendeteksi `glow` secara otomatis jika terpasang. Pada Windows, Anda bisa menginstalnya lewat command prompt administrator dengan:
+3.  **Instalasi Glow** (Sangat direkomendasikan):
+    Aplikasi akan mendeteksi `glow` secara otomatis. Di Windows (Administrator), Anda dapat menginstalnya via:
     ```bash
     winget install Charmbracelet.Glow
     ```
-4.  Salin template berkas environment variables:
+4.  Siapkan konfigurasi berkas environment:
     ```bash
     copy .env.example .env
     ```
-5.  Buka file `.env` dan masukkan OpenAI API Key atau provider kompatibel Anda:
+5.  Buka berkas `.env` dan isi OpenAI API Key Anda:
     ```env
     OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     ```
@@ -99,7 +95,7 @@ Aplikasi ini dibina di atas ekosistem JavaScript/TypeScript modern dengan mengin
 
 ## 🛠️ Perintah Eksekusi
 
-### 1. Mode Pengembangan (Live Hot-Reload)
+### 1. Jalankan Mode Pengembangan (Live Hot-Reload)
 *   **Default (Normal Mode, Tanpa Thinking)**:
     ```bash
     npm run dev
@@ -112,124 +108,107 @@ Aplikasi ini dibina di atas ekosistem JavaScript/TypeScript modern dengan mengin
     ```bash
     npm run dev -- -t
     ```
-*   **Mengaktifkan Mode Translator (Clipboard) sejak awal**:
-    ```bash
-    npm run dev -- -clip
-    ```
-    *atau (jika menggunakan versi build kompilasi langsung):*
-    ```bash
-    english-cli -clip
-    ```
-*   **Mengganti Model Default secara Manual**:
+*   **Menggunakan Model Tertentu**:
     ```bash
     npm run dev -- -m gpt-4o
     ```
 
 ### 2. Kompilasi TypeScript (Build)
-Sebelum menjalankan mode produksi, Anda wajib melakukan kompilasi file TypeScript:
+Sebelum menjalankan aplikasi dalam mode produksi, lakukan kompilasi:
 ```bash
 npm run build
 ```
 
-### 4. Menjalankan Filesystem MCP Server
-Untuk menjalankan Filesystem MCP Server yang memungkinkan akses ke sistem file:
+### 3. Menjalankan Filesystem MCP Server Secara Terpisah
 ```bash
 npm run mcp-server
 ```
-Secara default, server akan mengizinkan akses ke direktori kerja saat ini. Anda dapat menentukan direktori yang diizinkan dengan:
+Secara bawaan, server akan mengizinkan akses ke direktori kerja saat ini. Anda juga bisa membatasi direktori yang diizinkan:
 ```bash
-npm run mcp-server -- /path/to/allowed/directory
+npm run mcp-server -- /path/ke/direktori/aman
 ```
 
 ---
 
-## 🛠️ Perintah & Pintasan di Dalam Aplikasi (TUI Shortcuts)
+## ⌨️ Perintah & Pintasan Aplikasi (TUI Shortcuts)
 
 | Tombol / Perintah | Deskripsi |
 | :--- | :--- |
-| **`/help`** | Menampilkan panduan bantuan CLI. |
-| **`/clear`** | Menghapus seluruh riwayat obrolan dari memori. |
-| **`/read [path]`** | Membaca dan memuat isi berkas lokal ke dalam konteks obrolan (contoh: `/read src/App.tsx`). |
-| **`/write [path] [content]`** | Menulis konten ke file (contoh: `/write notes.txt Hello World`). |
-| **`/ls [path]`** | Menampilkan daftar isi direktori (contoh: `/ls src`). |
-| **`/pwd`** | Menampilkan direktori kerja saat ini. |
-| **`/mode`** | Menampilkan menu interaktif untuk beralih antara 4 mode: **Translator**, **Translator (Clipboard)**, **Chat**, atau **Agent**. |
-| **`/model`** | Menampilkan menu antarmuka interaktif untuk memilih model AI. |
-| **`/model [nama]`** | Mengubah model AI aktif secara langsung tanpa menu interaktif. |
-| **`/exit`** | Keluar dari aplikasi. |
+| **`/help`** | Menampilkan menu bantuan dan informasi CLI. |
+| **`/clear`** | Membersihkan riwayat percakapan dari memori visual. |
+| **`/read [path]`** | Membaca file lokal ke dalam konteks obrolan (contoh: `/read src/App.tsx`). |
+| **`/write [path] [content]`** | Menulis konten langsung ke file (contoh: `/write notes.txt Hello World`). |
+| **`/ls [path]`** | Menampilkan daftar berkas dalam direktori (contoh: `/ls src`). |
+| **`/pwd`** | Menampilkan direktori aktif saat ini. |
+| **`/mode`** | Memilih salah satu dari 3 mode: **Translator**, **Chat**, atau **Agent**. |
+| **`/model`** | Membuka menu interaktif untuk mengganti Model AI. |
+| **`/model [nama]`** | Mengganti Model AI aktif secara instan via teks. |
+| **`/exit`** | Menutup aplikasi secara aman. |
 | **`Ctrl + L`** | Membersihkan layar terminal. |
 | **`Ctrl + C`** | Keluar dari aplikasi secara instan. |
-| **`Panah Atas / Bawah`** | Menjelajahi riwayat prompt (Command History). |
-| **`Panah Kiri / Kanan`** | Memindahkan kursor input teks ke kiri dan ke kanan. |
+| **`Panah Atas / Bawah`** | Menelusuri riwayat pengetikan (Command History). |
+| **`Panah Kiri / Kanan`** | Menggeser kursor teks saat mengetik. |
 | **`Backspace / Delete`** | Menghapus karakter di posisi kursor. |
 
 ---
 
-## 📚 Dokumentasi Tambahan
+## 📚 Dokumentasi Arsitektur
 
-Untuk penjelasan yang lebih mendalam mengenai arsitektur, integrasi, dan cara kerja komponen yang digunakan dalam proyek AI CLI ini, silakan baca dokumentasi berikut:
+Untuk mempelajari lebih dalam mengenai detail arsitektur pendukung proyek ini, silakan merujuk ke dokumen berikut:
 *   [Arsitektur MCP (Model Context Protocol)](doc/mcp.md)
 *   [Arsitektur LangChain & LangGraph](doc/langchain.md)
 *   [Tutorial Integrasi 9Router & Alibaba Cloud Model Studio](doc/9router.md)
 
 ---
 
-## 📂 Struktur File Utama
-
-Proyek ini dibangun secara modular untuk mendukung antarmuka terminal interaktif (TUI), manajemen *state*, orkestrasi model AI menggunakan LangChain & LangGraph, dan konektivitas Model Context Protocol (MCP).
+## 📂 Struktur Folder Proyek
 
 ```text
 learn-english-cli/
-├── doc/                        # Dokumentasi arsitektur dan tutorial
-│   ├── 9router.md              # Panduan setup & konfigurasi 9Router dan Alibaba Cloud
-│   ├── langchain.md            # Dokumentasi arsitektur LangChain & LangGraph
-│   ├── mcp.md                  # Dokumentasi Model Context Protocol (MCP)
-│   └── workflow.png            # Diagram alur kerja program
+├── doc/                        # Dokumentasi arsitektur dan panduan tambahan
 ├── src/
-│   ├── components/             # Komponen antarmuka Terminal (berbasis React/Ink)
-│   │   ├── AgentMode.tsx       # Komponen UI & handler khusus mode Agent
-│   │   ├── ChatMode.tsx        # Komponen UI & handler khusus mode Chat
-│   │   ├── ChatView.tsx        # Tampilan riwayat percakapan AI & pengguna
-│   │   ├── Header.tsx          # Header informasi model, mode, dan koneksi
-│   │   ├── InputBar.tsx        # Input teks dinamis dengan navigasi presisi & histori kursor
-│   │   ├── Message.tsx         # Komponen rendering pesan tunggal
-│   │   ├── ModeSelector.tsx    # Menu UI interaktif untuk berganti mode (Translator/Chat/Agent)
-│   │   ├── ModelSelector.tsx   # Menu UI interaktif untuk berganti Model LLM
-│   │   ├── StatusBar.tsx       # Indikator status (Thinking/Generating), dan kalkulasi token
-│   │   └── TranslatorMode.tsx  # Komponen UI & handler khusus mode Translator
+│   ├── components/             # Komponen antarmuka Terminal (React/Ink)
+│   │   ├── AgentMode.tsx       # UI & logika untuk mode Agent
+│   │   ├── ChatMode.tsx        # UI & logika untuk mode Chat
+│   │   ├── ChatView.tsx        # Tampilan riwayat percakapan AI & User
+│   │   ├── Header.tsx          # Panel informasi model dan status koneksi
+│   │   ├── InputBar.tsx        # Kotak input teks interaktif dengan history kursor
+│   │   ├── Message.tsx         # Komponen penampil pesan tunggal
+│   │   ├── ModeSelector.tsx    # Menu ganti mode (Translator/Chat/Agent)
+│   │   ├── ModelSelector.tsx   # Menu pemilihan model AI
+│   │   ├── StatusBar.tsx       # Indikator status (Thinking/Generating) dan token
+│   │   └── TranslatorMode.tsx  # UI & logika untuk mode Translator (dengan auto-clipboard)
 │   ├── config/
-│   │   └── prompts.ts          # Konstanta sistem prompt (Translator/Router/Agent)
-│   ├── context/
-│   │   └── ChatContext.tsx     # React Context untuk mengurangi prop drilling antar komponen
-│   ├── hooks/                  # Custom hooks untuk logika spesifik per mode
-│   │   ├── useAgentMode.ts     # Hook: routing & streaming agen dengan fallback ke chat
-│   │   ├── useChatMode.ts      # Hook: streaming percakapan chat dengan riwayat
-│   │   ├── useClipboardWatcher.ts # Hook: pemantau clipboard OS secara real-time asinkron
-│   │   └── useTranslatorMode.ts # Hook: streaming terjemahan tanpa riwayat
-│   ├── services/               # Lapisan layanan utama untuk integrasi AI dan MCP
-│   │   ├── agentRouter.ts      # Penentu rute Agen AI eksplisit (command/chat/error)
-│   │   ├── langchain.ts        # Barrel export + fungsi streaming (chat, agent, router)
-│   │   ├── messageBuilder.ts   # MessageBuilder: konstruksi pesan terpusat dengan PROMPT_MAP
-│   │   ├── modelManager.ts     # ModelManager: singleton cache instance ChatOpenAI
-│   │   └── simpleMcpServer.ts  # Server MCP asli berspesifikasi JSON-RPC untuk File System lokal
+│   │   └── prompts.ts          # Berkas penyimpanan sistem prompt terpusat
+│   ├── hooks/                  # Logika khusus per-fitur berbasis React Hooks
+│   │   ├── useAgentMode.ts     # Logika pemrosesan dan streaming Agen AI
+│   │   ├── useChatMode.ts      # Logika streaming chat normal
+│   │   ├── useClipboardWatcher.ts # Pemantau clipboard OS secara asinkron
+│   │   └── useTranslatorMode.ts # Logika streaming translator dwi-arah
+│   ├── services/               # Integrasi model LLM, MCP, dan pembangun pesan
+│   │   ├── agentRouter.ts      # Routing perintah input untuk Agen AI
+│   │   ├── langchain.ts        # Pustaka wrapper LangChain streaming chat & agent
+│   │   ├── messageBuilder.ts   # Konstruktor format pesan terpusat
+│   │   ├── modelManager.ts     # Singleton model cache instance ChatOpenAI
+│   │   └── simpleMcpServer.ts  # Implementasi MCP Server JSON-RPC lokal
 │   ├── store/
-│   │   └── chatStore.ts        # State management dengan selector, memoization, & shallowEqual
+│   │   └── chatStore.ts        # Manajemen state global aplikasi
 │   ├── tools/
-│   │   └── index.ts            # MCP Client berbasis @langchain/mcp-adapters penyedia alat otomatis
+│   │   └── index.ts            # Registrasi tools filesystem untuk Agen AI
 │   ├── types/
-│   │   ├── chat.ts             # Definisi tipe TypeScript untuk state dan status chat
-│   │   └── modes.ts            # Tipe TypeScript ModeHandler dan TranslatorModeConfig
-│   ├── utils/                  # Utilitas fungsional kecil (Helper)
-│   │   ├── commandExecutor.ts  # Eksekutor perintah filesystem dengan sanitasi path & batas ukuran file
-│   │   ├── envConfig.ts        # Pengelola dan validasi file .env
-│   │   ├── errors.ts           # Defisini AppError dan ErrorCode yang type-safe
-│   │   ├── logger.ts           # Logger terstruktur menulis log ke logs/app.log
-│   │   ├── markdown.ts         # Parser Markdown kustom dan pengait ke Glow CLI
-│   │   ├── modelConfig.ts      # Cache penyimpan referensi model AI terakhir yang digunakan
-│   │   └── validation.ts       # InputValidator: validasi input, rate limiting, sanitasi path
-│   ├── App.tsx                 # Komponen root: inisialisasi, pemilihan model/mode, delegasi render
-│   ├── index.tsx               # Titik masuk eksekusi utama aplikasi React/Ink
-│   └── mcp-server.ts           # Skrip entry point terpisah untuk menjalankan MCP Server lokal
-├── .env.example                # Templat kredensial dan konfigurasi dasar API
-└── package.json                # Pengelola dependensi proyek & skrip start/build/dev
+│   │   ├── chat.ts             # Deklarasi tipe data chat dan status
+│   │   └── modes.ts            # Deklarasi tipe data handler mode
+│   ├── utils/                  # Kumpulan helper fungsional pendukung
+│   │   ├── commandExecutor.ts  # Eksekutor utilitas filesystem lokal
+│   │   ├── envConfig.ts        # Verifikasi berkas .env
+│   │   ├── errors.ts           # Definisi standarisasi error
+│   │   ├── logger.ts           # Logging aplikasi terstruktur ke berkas log
+│   │   ├── markdown.ts         # Wrapper parser markdown (Marked & Glow)
+│   │   ├── modelConfig.ts      # Cache model terakhir yang digunakan
+│   │   └── validation.ts       # Validasi input pengguna dan sanitasi keamanan
+│   ├── App.tsx                 # Komponen root aplikasi
+│   ├── index.tsx               # Entry point utama aplikasi React Ink
+│   └── mcp-server.ts           # Entry point mandiri untuk MCP server
+├── .env.example                # Template berkas kredensial
+└── package.json                # Dependensi proyek & konfigurasi skrip npm
 ```
