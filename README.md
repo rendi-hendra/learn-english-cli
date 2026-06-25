@@ -51,7 +51,8 @@ Untuk menjamin tampilan estetis tanpa mengorbankan performa:
 *   **Graf Eksekusi Agen**: Memungkinkan pengaturan alur kerja agen AI yang terstruktur, mempermudah pelacakan eksekusi *tool* serta penanganan kesalahan (*error handling*).
 
 ### 8. 🏗️ Desain Kode Modular & Bersih
-*   **Pemisahan Tanggung Jawab**: Setiap mode aplikasi (Translator, Chat, Agent) dipisahkan menjadi komponen React tersendiri.
+*   **Pemisahan Tanggung Jawab**: Setiap mode aplikasi (Translator, Chat, Agent) dipisahkan menjadi komponen React tersendiri dengan `BaseModeLayout` sebagai fondasi *layout* bersama.
+*   **Sentralisasi Perintah (DRY)**: Hook `useCommonCommands` menggabungkan seluruh logika perintah umum (`/exit`, `/clear`, `/help`, `/mode`, `/model`) ke satu modul terpusat, mengeliminasi duplikasi di setiap mode.
 *   **MessageBuilder & ModelManager**: Konstruksi prompt terpusat (`PROMPT_MAP`) dan inisialisasi model di-*cache* (Singleton) untuk performa optimal.
 *   **Lapisan Validasi Valid**: Membatasi panjang input (maks. 2000 karakter), menerapkan *rate limiting* (cooldown 1 detik), dan menyaring *path* file untuk menghindari celah keamanan *directory traversal*.
 
@@ -158,6 +159,7 @@ Untuk mempelajari lebih dalam mengenai detail arsitektur pendukung proyek ini, s
 *   [Arsitektur MCP (Model Context Protocol)](doc/mcp.md)
 *   [Arsitektur LangChain & LangGraph](doc/langchain.md)
 *   [Tutorial Integrasi 9Router & Alibaba Cloud Model Studio](doc/9router.md)
+*   [Diagram Alur Kerja Aplikasi (Mermaid)](doc/workflow.mmd)
 
 ---
 
@@ -166,9 +168,15 @@ Untuk mempelajari lebih dalam mengenai detail arsitektur pendukung proyek ini, s
 ```text
 learn-english-cli/
 ├── doc/                        # Dokumentasi arsitektur dan panduan tambahan
+│   ├── 9router.md              # Tutorial integrasi 9Router & Alibaba Cloud
+│   ├── langchain.md            # Arsitektur LangChain & LangGraph
+│   ├── mcp.md                  # Arsitektur Model Context Protocol
+│   ├── workflow.mmd            # Diagram alur kerja aplikasi (Mermaid)
+│   └── workflow.png            # Diagram alur kerja aplikasi (gambar)
 ├── src/
 │   ├── components/             # Komponen antarmuka Terminal (React/Ink)
 │   │   ├── AgentMode.tsx       # UI & logika untuk mode Agent
+│   │   ├── BaseModeLayout.tsx  # Fondasi layout bersama (Header, ChatView, InputBar, StatusBar)
 │   │   ├── ChatMode.tsx        # UI & logika untuk mode Chat
 │   │   ├── ChatView.tsx        # Tampilan riwayat percakapan AI & User
 │   │   ├── Header.tsx          # Panel informasi model dan status koneksi
@@ -184,12 +192,15 @@ learn-english-cli/
 │   │   ├── useAgentMode.ts     # Logika pemrosesan dan streaming Agen AI
 │   │   ├── useChatMode.ts      # Logika streaming chat normal
 │   │   ├── useClipboardWatcher.ts # Pemantau clipboard OS secara asinkron
+│   │   ├── useCommonCommands.ts # Sentralisasi perintah umum (/exit, /clear, /help, dll.)
 │   │   └── useTranslatorMode.ts # Logika streaming translator dwi-arah
 │   ├── services/               # Integrasi model LLM, MCP, dan pembangun pesan
+│   │   ├── __tests__/          # Unit test untuk modul services
 │   │   ├── agentRouter.ts      # Routing perintah input untuk Agen AI
 │   │   ├── langchain.ts        # Pustaka wrapper LangChain streaming chat & agent
 │   │   ├── messageBuilder.ts   # Konstruktor format pesan terpusat
 │   │   ├── modelManager.ts     # Singleton model cache instance ChatOpenAI
+│   │   ├── openai.ts           # Wrapper langsung API OpenAI (fallback non-LangChain)
 │   │   └── simpleMcpServer.ts  # Implementasi MCP Server JSON-RPC lokal
 │   ├── store/
 │   │   └── chatStore.ts        # Manajemen state global aplikasi
@@ -199,6 +210,7 @@ learn-english-cli/
 │   │   ├── chat.ts             # Deklarasi tipe data chat dan status
 │   │   └── modes.ts            # Deklarasi tipe data handler mode
 │   ├── utils/                  # Kumpulan helper fungsional pendukung
+│   │   ├── __tests__/          # Unit test untuk modul utils
 │   │   ├── commandExecutor.ts  # Eksekutor utilitas filesystem lokal
 │   │   ├── envConfig.ts        # Verifikasi berkas .env
 │   │   ├── errors.ts           # Definisi standarisasi error
